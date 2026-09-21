@@ -12,6 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ReviewRouteImport } from './routes/review'
+import { Route as SimulatorRouteImport } from './routes/simulator'
+import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as LibraryIndexRouteImport } from './routes/library.index'
 import { Route as LibraryIdRouteImport } from './routes/library.$id'
 
@@ -30,6 +33,21 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReviewRoute = ReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SimulatorRoute = SimulatorRouteImport.update({
+  id: '/simulator',
+  path: '/simulator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubmitRoute = SubmitRouteImport.update({
+  id: '/submit',
+  path: '/submit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LibraryIndexRoute = LibraryIndexRouteImport.update({
   id: '/library/',
   path: '/library/',
@@ -45,6 +63,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/login': typeof LoginRoute
+  '/review': typeof ReviewRoute
+  '/simulator': typeof SimulatorRoute
+  '/submit': typeof SubmitRoute
   '/library/$id': typeof LibraryIdRoute
   '/library/': typeof LibraryIndexRoute
 }
@@ -52,6 +73,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/login': typeof LoginRoute
+  '/review': typeof ReviewRoute
+  '/simulator': typeof SimulatorRoute
+  '/submit': typeof SubmitRoute
   '/library/$id': typeof LibraryIdRoute
   '/library': typeof LibraryIndexRoute
 }
@@ -60,21 +84,52 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/login': typeof LoginRoute
+  '/review': typeof ReviewRoute
+  '/simulator': typeof SimulatorRoute
+  '/submit': typeof SubmitRoute
   '/library/$id': typeof LibraryIdRoute
   '/library/': typeof LibraryIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/login' | '/library/$id' | '/library/'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/login'
+    | '/review'
+    | '/simulator'
+    | '/submit'
+    | '/library/$id'
+    | '/library/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/login' | '/library/$id' | '/library'
-  id: '__root__' | '/' | '/about' | '/login' | '/library/$id' | '/library/'
+  to:
+    | '/'
+    | '/about'
+    | '/login'
+    | '/review'
+    | '/simulator'
+    | '/submit'
+    | '/library/$id'
+    | '/library'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/login'
+    | '/review'
+    | '/simulator'
+    | '/submit'
+    | '/library/$id'
+    | '/library/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   LoginRoute: typeof LoginRoute
+  ReviewRoute: typeof ReviewRoute
+  SimulatorRoute: typeof SimulatorRoute
+  SubmitRoute: typeof SubmitRoute
   LibraryIdRoute: typeof LibraryIdRoute
   LibraryIndexRoute: typeof LibraryIndexRoute
 }
@@ -102,6 +157,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/review': {
+      id: '/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof ReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/simulator': {
+      id: '/simulator'
+      path: '/simulator'
+      fullPath: '/simulator'
+      preLoaderRoute: typeof SimulatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/submit': {
+      id: '/submit'
+      path: '/submit'
+      fullPath: '/submit'
+      preLoaderRoute: typeof SubmitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/library/': {
       id: '/library/'
       path: '/library'
@@ -123,6 +199,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   LoginRoute: LoginRoute,
+  ReviewRoute: ReviewRoute,
+  SimulatorRoute: SimulatorRoute,
+  SubmitRoute: SubmitRoute,
   LibraryIdRoute: LibraryIdRoute,
   LibraryIndexRoute: LibraryIndexRoute,
 }
