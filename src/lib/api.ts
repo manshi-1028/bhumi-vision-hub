@@ -306,8 +306,9 @@ export function buildDashboardCsv(data: DashboardData): string {
   push("KPI", "Women-owned land (%)", data.kpis.womenOwned);
   push("KPI", "Climate vulnerability index", data.kpis.climateIndex);
   push("KPI", "Research outputs", data.kpis.researchOutputs);
-  data.digitizedSeries.labels.forEach((l, i) => push("Records digitized over time (%)", l, data.digitizedSeries.values[i]));
-  data.builtUpSeries.labels.forEach((l, i) => push("Built-up land over time (%)", l, data.builtUpSeries.values[i]));
+  data.digitizedSeries.labels.forEach((l, i) => push("Records digitized over time (%)", l, data.digitizedSeries.values[i] ?? ""));
+  data.builtUpSeries.labels.forEach((l, i) => push("Built-up land over time (%)", l, data.builtUpSeries.values[i] ?? ""));
+
   data.disputesByState.forEach((d) => push("Pending disputes by state (thousands)", d.label, d.value));
   data.researchByTopic.forEach((d) => push("Research outputs by topic", d.label, d.value));
   data.progress.forEach((d) => push("Project progress by component (%)", d.label, d.value));
