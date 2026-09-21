@@ -13,7 +13,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Sample national indicators on land record digitisation, disputes, women's land ownership, climate vulnerability and research outputs.",
+          "National indicators on land record digitisation, disputes, women's land ownership, climate vulnerability and research outputs.",
       },
       { property: "og:title", content: "National land governance dashboard | BhoomiSetu" },
       {
@@ -37,6 +37,8 @@ function Kpi({ label, value, note }: { label: string; value: string; note?: stri
 
 function Dashboard() {
   const [year, setYear] = useState(2025);
+  const yearsQuery = useQuery({ queryKey: ["years"], queryFn: getYears });
+  const years = yearsQuery.data ?? [];
   const query = useQuery({ queryKey: ["dashboard", year], queryFn: () => getDashboard(year) });
 
   function downloadCsv() {
@@ -61,7 +63,7 @@ function Dashboard() {
         <label className="w-full max-w-[200px] text-sm">
           <span className="mb-1 block text-[var(--muted-foreground)]">Reporting year</span>
           <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
-            {getYears().map((y) => (
+            {years.map((y) => (
               <option key={y} value={y}>
                 {y}
               </option>

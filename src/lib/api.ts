@@ -1,100 +1,60 @@
 /**
- * Single data access layer. Components must never read storage or the sample
- * data files directly. Everything here is sample/demo data.
- *
- * Mock auth: any email with password "demo123" is accepted.
- * Role is derived from the email prefix:
- *   official@...      -> "official"      (full access, including /review)
- *   institution@...   -> "institution"
- *   researcher@...    -> "researcher"    (default for every other address)
+ * Single data access layer. All Supabase queries go through here.
+ * React components must never call Supabase directly.
  */
 
-import {
-  BUILT_UP_SERIES,
-  DIGITIZED_SERIES,
-  DISPUTES_BY_STATE,
-  KPIS_BY_YEAR,
-  PROGRESS_COMPONENTS,
-  RESEARCH_ITEMS,
-  STATES,
-  TIME_SERIES_YEARS,
-  TOPICS,
-  TYPES,
-  YEARS,
-  type Kpis,
-  type ResearchItem,
-} from "./data";
+import { supabase } from "./supabase";
 
 export type Role = "researcher" | "institution" | "official";
 
 export interface User {
+  id: string;
   email: string;
+  fullName: string | null;
   role: Role;
-}
-
-const STORAGE_USER = "bhoomisetu.user";
-const STORAGE_SUBMISSIONS = "bhoomisetu.submissions";
-
-const delay = (ms = 260) => new Promise((r) => setTimeout(r, ms));
-
-/* ---------------------------------- auth --------------------------------- */
-
-export function roleForEmail(email: string): Role {
-  const prefix = email.trim().toLowerCase().split("@")[0];
-  if (prefix === "official") return "official";
-  if (prefix === "institution") return "institution";
-  return "researcher";
-}
-
-export async function login(email: string, password: string): Promise<User> {
-  await delay(320);
-  if (!email.includes("@")) throw new Error("Enter a valid email address.");
-  if (password !== "demo123") throw new Error("Incorrect password. Demo accounts use the password demo123.");
-  const user: User = { email: email.trim().toLowerCase(), role: roleForEmail(email) };
-  if (typeof window !== "undefined") localStorage.setItem(STORAGE_USER, JSON.stringify(user));
-  return user;
-}
-
-export function logout() {
-  if (typeof window !== "undefined") localStorage.removeItem(STORAGE_USER);
-}
-
-export function getCurrentUser(): User | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(STORAGE_USER);
-    return raw ? (JSON.parse(raw) as User) : null;
-  } catch {
-    return null;
-  }
-}
-
-export function canAccess(user: User | null, path: string): boolean {
-  if (path.startsWith("/review")) return user?.role === "official";
-  if (path.startsWith("/simulator") || path.startsWith("/submit")) return !!user;
-  return true;
 }
 
 /* -------------------------------- reference ------------------------------- */
 
-export function getStates() {
-  return STATES;
+export async function getStates(): Promise<string[]> {
+  const { data, error } = await supabase.from("regions").select("name").order("name");
+  if (error) throw new Error("Failed to load states.");
+  return (data ?? []).map((r) => r.name);
 }
-export function getTopics() {
-  return TOPICS;
+
+export async function getTopics(): Promise<string[]> {
+  const { data, error } = await supabase.from("evidence").select("topic").order("topic");
+  if (error) throw new Error("Failed to load topics.");
+  return [...new Set((data ?? []).map((e) => e.topic).filter(Boolean))];
 }
-export function getTypes() {
-  return TYPES;
+
+export async function getTypes(): Promise<string[]> {
+  const { data, error } = await supabase.from("evidence").select("type").order("type");
+  if (error) throw new Error("Failed to load types.");
+  return [...new Set((data ?? []).map((e) => e.type).filter(Boolean))];
 }
-export function getYears() {
-  return YEARS;
+
+export async function getYears(): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("land_metrics")
+    .select("year")
+    .order("year", { ascending: false });
+  if (error) throw new Error("Failed to load years.");
+  return [...new Set((data ?? []).map((e) => e.year))];
 }
 
 /* -------------------------------- dashboard ------------------------------- */
 
 export interface DashboardData {
   year: number;
-  kpis: Kpis;
+  kpis: {
+    digitized: number;
+    pendingDisputes: number;
+    avgResolutionDays: number;
+    womenOwned: number;
+    climateIndex: number;
+    researchOutputs: number;
+  };
   digitizedSeries: { labels: string[]; values: number[] };
   builtUpSeries: { labels: string[]; values: number[] };
   disputesByState: { label: string; value: number }[];
@@ -103,26 +63,109 @@ export interface DashboardData {
 }
 
 export async function getDashboard(year: number): Promise<DashboardData> {
-  await delay();
-  const kpis = KPIS_BY_YEAR[year];
-  if (!kpis) throw new Error(`No sample data available for ${year}.`);
-  const labels = TIME_SERIES_YEARS.map(String);
-  const researchByTopic = TOPICS.map((t) => ({
-    label: t,
-    value: RESEARCH_ITEMS.filter((i) => i.topic === t && i.year <= year).length * 9 + 12,
-  }));
+  // Fetch land metrics for the selected year (all regions)
+  const { data: metrics, error: mErr } = await supabase
+    .from("land_metrics")
+    .select(`
+      records_digitized_pct, pending_disputes, avg_resolution_days,
+      women_owned_pct, climate_vuln_index, built_up_pct,
+      region_id, regions (name)
+    `)
+    .eq("year", year);
+
+  if (mErr) throw new Error("Failed to load dashboard metrics.");
+  if (!metrics || metrics.length === 0) throw new Error(`No data available for ${year}.`);
+
+  // Aggregate national KPIs (average across regions)
+  const n = metrics.length;
+  const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
+  const digitized = Math.round(sum(metrics.map((m) => m.records_digitized_pct ?? 0)) / n);
+  const pendingDisputes = Math.round(sum(metrics.map((m) => m.pending_disputes ?? 0)));
+  const avgResolutionDays = Math.round(sum(metrics.map((m) => m.avg_resolution_days ?? 0)) / n);
+  const womenOwned = Math.round((sum(metrics.map((m) => m.women_owned_pct ?? 0)) / n) * 10) / 10;
+  const climateIndex = Math.round((sum(metrics.map((m) => m.climate_vuln_index ?? 0)) / n) * 100) / 100;
+
+  // Research outputs count
+  const { count: researchOutputs } = await supabase
+    .from("evidence")
+    .select("id", { count: "exact", head: true })
+    .lte("year", year);
+
+  // Time series: aggregate across all regions for each year
+  const { data: allMetrics } = await supabase
+    .from("land_metrics")
+    .select("year, records_digitized_pct, built_up_pct")
+    .order("year");
+
+  const yearMap = new Map<number, { dig: number[]; bu: number[] }>();
+  for (const m of allMetrics ?? []) {
+    const key = m.year;
+    if (!yearMap.has(key)) yearMap.set(key, { dig: [], bu: [] });
+    yearMap.get(key)!.dig.push(m.records_digitized_pct ?? 0);
+    yearMap.get(key)!.bu.push(m.built_up_pct ?? 0);
+  }
+
+  const sortedYears = [...yearMap.keys()].sort((a, b) => a - b);
+  const digitizedSeries = {
+    labels: sortedYears.map(String),
+    values: sortedYears.map((y) => Math.round((sum(yearMap.get(y)!.dig) / yearMap.get(y)!.dig.length) * 10) / 10),
+  };
+  const builtUpSeries = {
+    labels: sortedYears.map(String),
+    values: sortedYears.map((y) => Math.round((sum(yearMap.get(y)!.bu) / yearMap.get(y)!.bu.length) * 10) / 10),
+  };
+
+  // Disputes by state (top 10)
+  const disputesByState = metrics
+    .map((m) => ({ label: (m.regions as { name: string }).name, value: Math.round((m.pending_disputes ?? 0) / 1000) }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10);
+
+  // Research by topic
+  const { data: evidence } = await supabase.from("evidence").select("topic").lte("year", year);
+  const topicCount = new Map<string, number>();
+  for (const e of evidence ?? []) {
+    if (e.topic) topicCount.set(e.topic, (topicCount.get(e.topic) ?? 0) + 1);
+  }
+  const researchByTopic = [...topicCount.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value);
+
+  // Project progress
+  const { data: projects } = await supabase.from("projects").select("title, progress_pct").order("title");
+  const progress = (projects ?? []).map((p) => ({ label: p.title, value: p.progress_pct ?? 0 }));
+
   return {
     year,
-    kpis,
-    digitizedSeries: { labels, values: DIGITIZED_SERIES },
-    builtUpSeries: { labels, values: BUILT_UP_SERIES },
-    disputesByState: DISPUTES_BY_STATE[year]!,
+    kpis: {
+      digitized,
+      pendingDisputes,
+      avgResolutionDays,
+      womenOwned,
+      climateIndex,
+      researchOutputs: researchOutputs ?? 0,
+    },
+    digitizedSeries,
+    builtUpSeries,
+    disputesByState,
     researchByTopic,
-    progress: PROGRESS_COMPONENTS,
+    progress,
   };
 }
 
 /* --------------------------------- library -------------------------------- */
+
+export interface LibraryItem {
+  id: string;
+  title: string;
+  type: string;
+  topic: string;
+  state: string;
+  year: number;
+  summary: string;
+  tags: string[];
+  source: string;
+}
 
 export interface LibraryQuery {
   q?: string;
@@ -135,111 +178,230 @@ export interface LibraryQuery {
 }
 
 export interface LibraryResult {
-  items: ResearchItem[];
+  items: LibraryItem[];
   total: number;
   page: number;
   pageSize: number;
   totalPages: number;
 }
 
-function allItems(): ResearchItem[] {
-  return [...RESEARCH_ITEMS, ...readSubmissions().filter((i) => i.status === "approved")];
-}
-
 export async function searchLibrary(query: LibraryQuery): Promise<LibraryResult> {
-  await delay();
   const pageSize = query.pageSize ?? 10;
   const page = query.page ?? 1;
-  const q = (query.q ?? "").trim().toLowerCase();
-  const filtered = allItems().filter((i) => {
-    if (q && !(i.title.toLowerCase().includes(q) || i.summary.toLowerCase().includes(q) || i.tags.join(" ").includes(q)))
-      return false;
-    if (query.type && i.type !== query.type) return false;
-    if (query.topic && i.topic !== query.topic) return false;
-    if (query.state && i.state !== query.state) return false;
-    if (query.year && String(i.year) !== query.year) return false;
-    return true;
-  });
-  const total = filtered.length;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  let db = supabase
+    .from("evidence")
+    .select(`
+      id, title, summary, type, topic, tags, year, source,
+      region_id, regions (name)
+    `, { count: "exact" });
+
+  if (query.q && query.q.trim()) {
+    db = db.or(`title.ilike.%${query.q.trim()}%,summary.ilike.%${query.q.trim()}%`);
+  }
+  if (query.type) db = db.eq("type", query.type);
+  if (query.topic) db = db.eq("topic", query.topic);
+  if (query.year) db = db.eq("year", Number(query.year));
+
+  // For state filter, we need to join regions by name — Supabase supports filtering on nested
+  if (query.state) {
+    db = db.eq("regions.name", query.state);
+  }
+
+  db = db.order("created_at", { ascending: false }).range(from, to);
+
+  const { data, error, count } = await db;
+  if (error) throw new Error("Failed to search the repository.");
+
+  const items: LibraryItem[] = (data ?? []).map((e) => ({
+    id: e.id,
+    title: e.title,
+    type: e.type ?? "",
+    topic: e.topic ?? "",
+    state: (e.regions as { name: string } | null)?.name ?? "",
+    year: e.year ?? 0,
+    summary: e.summary ?? "",
+    tags: e.tags ?? [],
+    source: e.source ?? "",
+  }));
+
+  const total = count ?? 0;
+  return { items, total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
+}
+
+export async function getResearchItem(id: string): Promise<LibraryItem> {
+  const { data, error } = await supabase
+    .from("evidence")
+    .select(`
+      id, title, summary, type, topic, tags, year, source,
+      region_id, regions (name)
+    `)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error("Failed to load the research item.");
+  if (!data) throw new Error(`No research item found with reference ${id}.`);
+
   return {
-    items: filtered.slice((page - 1) * pageSize, page * pageSize),
-    total,
-    page,
-    pageSize,
-    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    id: data.id,
+    title: data.title,
+    type: data.type ?? "",
+    topic: data.topic ?? "",
+    state: (data.regions as { name: string } | null)?.name ?? "",
+    year: data.year ?? 0,
+    summary: data.summary ?? "",
+    tags: data.tags ?? [],
+    source: data.source ?? "",
   };
 }
 
-export async function getResearchItem(id: string): Promise<ResearchItem> {
-  await delay();
-  const item = allItems().find((i) => i.id === id);
-  if (!item) throw new Error(`No research item found with reference ${id}.`);
-  return item;
-}
+export async function getRecommended(id: string): Promise<LibraryItem[]> {
+  // Fetch the current item to get topic and region
+  const { data: current } = await supabase
+    .from("evidence")
+    .select("topic, region_id")
+    .eq("id", id)
+    .maybeSingle();
 
-export async function getRecommended(id: string): Promise<ResearchItem[]> {
-  await delay(160);
-  const item = allItems().find((i) => i.id === id);
-  if (!item) return [];
-  return allItems()
-    .filter((i) => i.id !== id && (i.topic === item.topic || i.state === item.state))
-    .slice(0, 5);
+  if (!current) return [];
+
+  // Query items with matching topic or region, excluding current
+  const { data, error } = await supabase
+    .from("evidence")
+    .select(`
+      id, title, summary, type, topic, tags, year, source,
+      region_id, regions (name)
+    `)
+    .neq("id", id)
+    .or(`topic.eq.${current.topic},region_id.eq.${current.region_id}`)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  if (error) return [];
+
+  return (data ?? []).map((e) => ({
+    id: e.id,
+    title: e.title,
+    type: e.type ?? "",
+    topic: e.topic ?? "",
+    state: (e.regions as { name: string } | null)?.name ?? "",
+    year: e.year ?? 0,
+    summary: e.summary ?? "",
+    tags: e.tags ?? [],
+    source: e.source ?? "",
+  }));
 }
 
 /* ------------------------------- submissions ------------------------------ */
 
-function readSubmissions(): ResearchItem[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_SUBMISSIONS);
-    return raw ? (JSON.parse(raw) as ResearchItem[]) : [];
-  } catch {
-    return [];
-  }
+export interface Submission {
+  id: string;
+  title: string;
+  topic: string;
+  body: string;
+  status: string;
+  createdAt: string;
+  userId: string;
 }
 
-function writeSubmissions(items: ResearchItem[]) {
-  if (typeof window !== "undefined") localStorage.setItem(STORAGE_SUBMISSIONS, JSON.stringify(items));
-}
-
-export async function submitResearch(input: Omit<ResearchItem, "id" | "status">): Promise<ResearchItem> {
-  await delay(320);
+export async function submitResearch(input: {
+  title: string;
+  topic: string;
+  body: string;
+}): Promise<Submission> {
   if (!input.title.trim()) throw new Error("Title is required.");
-  if (!input.summary.trim()) throw new Error("Summary is required.");
-  const item: ResearchItem = { ...input, id: `SU-${Date.now().toString().slice(-6)}`, status: "pending" };
-  writeSubmissions([item, ...readSubmissions()]);
-  return item;
+  if (!input.body.trim()) throw new Error("Summary is required.");
+
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error("You must be signed in to submit.");
+
+  const { data, error } = await supabase
+    .from("submissions")
+    .insert({
+      user_id: userData.user.id,
+      title: input.title,
+      topic: input.topic,
+      body: input.body,
+      status: "pending",
+    })
+    .select("id, title, topic, body, status, created_at, user_id")
+    .single();
+
+  if (error) throw new Error("Failed to submit your research. Please try again.");
+
+  return {
+    id: data.id,
+    title: data.title,
+    topic: data.topic ?? "",
+    body: data.body ?? "",
+    status: data.status,
+    createdAt: data.created_at,
+    userId: data.user_id,
+  };
 }
 
-export async function getSubmissions(): Promise<ResearchItem[]> {
-  await delay();
-  return readSubmissions();
+export async function getSubmissions(): Promise<Submission[]> {
+  const { data, error } = await supabase
+    .from("submissions")
+    .select("id, title, topic, body, status, created_at, user_id")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error("Failed to load submissions.");
+
+  return (data ?? []).map((s) => ({
+    id: s.id,
+    title: s.title,
+    topic: s.topic ?? "",
+    body: s.body ?? "",
+    status: s.status,
+    createdAt: s.created_at,
+    userId: s.user_id,
+  }));
 }
 
 export async function decideSubmission(id: string, decision: "approve" | "reject"): Promise<void> {
-  await delay(200);
-  const items = readSubmissions();
-  writeSubmissions(
-    decision === "reject"
-      ? items.filter((i) => i.id !== id)
-      : items.map((i) => (i.id === id ? { ...i, status: "approved" } : i)),
-  );
+  const status = decision === "approve" ? "approved" : "rejected";
+  const { error } = await supabase.rpc("approve_submission", {
+    p_id: id,
+    p_status: status,
+  });
+  if (error) {
+    throw new Error(error.message || "Failed to update submission status.");
+  }
 }
 
 /* -------------------------------- simulator ------------------------------- */
 
-export type Lever =
-  | "Land records digitization"
-  | "Dispute resolution fast-track"
-  | "Women's land title drive"
-  | "Climate-resilient zoning";
+export interface PolicyLever {
+  id: string;
+  name: string;
+  description: string;
+  effDigitization: number;
+  effDisputesPct: number;
+  effResolutionDays: number;
+  effWomenOwned: number;
+}
 
-export const LEVERS: Lever[] = [
-  "Land records digitization",
-  "Dispute resolution fast-track",
-  "Women's land title drive",
-  "Climate-resilient zoning",
-];
+export async function getPolicyLevers(): Promise<PolicyLever[]> {
+  const { data, error } = await supabase
+    .from("policy_levers")
+    .select("id, name, description, eff_digitization, eff_disputes_pct, eff_resolution_days, eff_women_owned")
+    .order("name");
+
+  if (error) throw new Error("Failed to load policy levers.");
+
+  return (data ?? []).map((l) => ({
+    id: l.id,
+    name: l.name,
+    description: l.description ?? "",
+    effDigitization: l.eff_digitization ?? 0,
+    effDisputesPct: l.eff_disputes_pct ?? 0,
+    effResolutionDays: l.eff_resolution_days ?? 0,
+    effWomenOwned: l.eff_women_owned ?? 0,
+  }));
+}
 
 export interface SimulationRow {
   indicator: string;
@@ -256,24 +418,82 @@ export interface SimulationResult {
   headline: string;
 }
 
-export async function runSimulation(state: string, lever: Lever, intensity: number): Promise<SimulationResult> {
-  await delay(300);
+export async function runSimulation(
+  state: string,
+  leverId: string,
+  intensity: number,
+): Promise<SimulationResult> {
   if (!state) throw new Error("Select a state before running a projection.");
+
+  // Get the region's latest metrics as baseline
+  const { data: region } = await supabase
+    .from("regions")
+    .select("id")
+    .eq("name", state)
+    .maybeSingle();
+  if (!region) throw new Error(`No data for ${state}.`);
+
+  const { data: metrics } = await supabase
+    .from("land_metrics")
+    .select("records_digitized_pct, pending_disputes, avg_resolution_days, women_owned_pct, climate_vuln_index")
+    .eq("region_id", region.id)
+    .order("year", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!metrics) throw new Error(`No metrics found for ${state}.`);
+
+  // Get the selected policy lever
+  const { data: lever } = await supabase
+    .from("policy_levers")
+    .select("name, eff_digitization, eff_disputes_pct, eff_resolution_days, eff_women_owned")
+    .eq("id", leverId)
+    .maybeSingle();
+
+  if (!lever) throw new Error("Policy lever not found.");
+
   const k = intensity / 100;
-  const seed = (STATES.indexOf(state) + 1) / 12;
-  const base: Record<string, { unit: string; value: number; effect: number }> = {
-    "Records digitized": { unit: "%", value: 70 + seed * 14, effect: lever === "Land records digitization" ? 22 : 5 },
-    "Pending disputes": { unit: "thousands", value: 180 - seed * 60, effect: lever === "Dispute resolution fast-track" ? -34 : -9 },
-    "Average resolution time": { unit: "days", value: 980 - seed * 180, effect: lever === "Dispute resolution fast-track" ? -30 : -7 },
-    "Women-owned land": { unit: "%", value: 15 + seed * 6, effect: lever === "Women's land title drive" ? 42 : 4 },
-    "Climate vulnerability": { unit: "index", value: 0.68 - seed * 0.1, effect: lever === "Climate-resilient zoning" ? -21 : -3 },
+
+  const baseline = {
+    digitized: metrics.records_digitized_pct ?? 70,
+    disputes: (metrics.pending_disputes ?? 100000) / 1000,
+    resolution: metrics.avg_resolution_days ?? 900,
+    women: metrics.women_owned_pct ?? 15,
+    climate: metrics.climate_vuln_index ?? 0.6,
   };
-  const rows: SimulationRow[] = Object.entries(base).map(([indicator, cfg]) => ({
-    indicator,
-    unit: cfg.unit,
-    baseline: Number(cfg.value.toFixed(2)),
-    projected: Number((cfg.value * (1 + (cfg.effect / 100) * k)).toFixed(2)),
-  }));
+
+  const rows: SimulationRow[] = [
+    {
+      indicator: "Records digitized",
+      unit: "%",
+      baseline: Number(baseline.digitized.toFixed(2)),
+      projected: Number((baseline.digitized + lever.eff_digitization * k).toFixed(2)),
+    },
+    {
+      indicator: "Pending disputes",
+      unit: "thousands",
+      baseline: Number(baseline.disputes.toFixed(2)),
+      projected: Number((baseline.disputes * (1 + (lever.eff_disputes_pct / 100) * k)).toFixed(2)),
+    },
+    {
+      indicator: "Average resolution time",
+      unit: "days",
+      baseline: Number(baseline.resolution.toFixed(2)),
+      projected: Number((baseline.resolution + lever.eff_resolution_days * k).toFixed(2)),
+    },
+    {
+      indicator: "Women-owned land",
+      unit: "%",
+      baseline: Number(baseline.women.toFixed(2)),
+      projected: Number((baseline.women + lever.eff_women_owned * k).toFixed(2)),
+    },
+    {
+      indicator: "Climate vulnerability",
+      unit: "index",
+      baseline: Number(baseline.climate.toFixed(2)),
+      projected: Number((baseline.climate * (1 - 0.03 * k)).toFixed(2)),
+    },
+  ];
 
   const headlineRow = rows[0]!;
   const years = ["2026", "2027", "2028", "2029", "2030"];
@@ -286,7 +506,6 @@ export async function runSimulation(state: string, lever: Lever, intensity: numb
     rows,
     years,
     baselineSeries,
-
     projectedSeries,
     headline: `${headlineRow.indicator} (${headlineRow.unit})`,
   };
@@ -296,7 +515,8 @@ export async function runSimulation(state: string, lever: Lever, intensity: numb
 
 export function buildDashboardCsv(data: DashboardData): string {
   const lines: string[] = [];
-  const push = (...cells: (string | number)[]) => lines.push(cells.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","));
+  const push = (...cells: (string | number)[]) =>
+    lines.push(cells.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","));
   push("BhoomiSetu sample data export", `Year ${data.year}`);
   push("");
   push("Section", "Label", "Value");
@@ -308,7 +528,6 @@ export function buildDashboardCsv(data: DashboardData): string {
   push("KPI", "Research outputs", data.kpis.researchOutputs);
   data.digitizedSeries.labels.forEach((l, i) => push("Records digitized over time (%)", l, data.digitizedSeries.values[i] ?? ""));
   data.builtUpSeries.labels.forEach((l, i) => push("Built-up land over time (%)", l, data.builtUpSeries.values[i] ?? ""));
-
   data.disputesByState.forEach((d) => push("Pending disputes by state (thousands)", d.label, d.value));
   data.researchByTopic.forEach((d) => push("Research outputs by topic", d.label, d.value));
   data.progress.forEach((d) => push("Project progress by component (%)", d.label, d.value));

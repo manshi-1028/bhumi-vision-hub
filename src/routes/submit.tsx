@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Page, PageHeading, Protected } from "../components/site";
 import { getStates, getTopics, getTypes, submitResearch } from "../lib/api";
-import type { ResearchType } from "../lib/data";
 
 export const Route = createFileRoute("/submit")({
   head: () => ({
@@ -22,15 +22,22 @@ export const Route = createFileRoute("/submit")({
 
 function SubmitPage() {
   const [title, setTitle] = useState("");
-  const [type, setType] = useState<ResearchType>("Policy brief");
-  const [topic, setTopic] = useState(getTopics()[0] ?? "");
-  const [state, setState] = useState(getStates()[0] ?? "");
-  const [year, setYear] = useState(2025);
+  const [topic, setTopic] = useState("");
   const [summary, setSummary] = useState("");
-  const [tags, setTags] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+
+  const { data: topics } = useQuery({ queryKey: ["topics"], queryFn: getTopics });
+  const { data: states } = useQuery({ queryKey: ["states"], queryFn: getStates });
+  const { data: types } = useQuery({ queryKey: ["types"], queryFn: getTypes });
+
+  const [state, setState] = useState("");
+  const [type, setType] = useState("");
+
+  if (topics && topics.length > 0 && !topic) setTopic(topics[0]!);
+  if (states && states.length > 0 && !state) setState(states[0]!);
+  if (types && types.length > 0 && !type) setType(types[0]!);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,17 +47,12 @@ function SubmitPage() {
     try {
       const item = await submitResearch({
         title,
-        type,
         topic,
-        state,
-        year,
-        summary,
-        tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+        body: summary,
       });
-      setDone(`Submission received. Reference ${item.id}. It is now pending official review.`);
+      setDone(`Submission received. Reference ${item.id.slice(0, 8)}. It is now pending official review.`);
       setTitle("");
       setSummary("");
-      setTags("");
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -71,8 +73,8 @@ function SubmitPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="mb-1 block text-[var(--muted-foreground)]">Type</span>
-            <select value={type} onChange={(e) => setType(e.target.value as ResearchType)}>
-              {getTypes().map((t) => (
+            <select value={type} onChange={(e) => setType(e.target.value)}>
+              {(types ?? []).map((t) => (
                 <option key={t}>{t}</option>
               ))}
             </select>
@@ -80,7 +82,7 @@ function SubmitPage() {
           <label className="block text-sm">
             <span className="mb-1 block text-[var(--muted-foreground)]">Topic</span>
             <select value={topic} onChange={(e) => setTopic(e.target.value)}>
-              {getTopics().map((t) => (
+              {(topics ?? []).map((t) => (
                 <option key={t}>{t}</option>
               ))}
             </select>
@@ -88,25 +90,16 @@ function SubmitPage() {
           <label className="block text-sm">
             <span className="mb-1 block text-[var(--muted-foreground)]">State</span>
             <select value={state} onChange={(e) => setState(e.target.value)}>
-              {getStates().map((s) => (
+              {(states ?? []).map((s) => (
                 <option key={s}>{s}</option>
               ))}
             </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-[var(--muted-foreground)]">Year</span>
-            <input type="number" min={2000} max={2026} value={year} onChange={(e) => setYear(Number(e.target.value))} />
           </label>
         </div>
 
         <label className="block text-sm">
           <span className="mb-1 block text-[var(--muted-foreground)]">Summary</span>
           <textarea rows={6} value={summary} onChange={(e) => setSummary(e.target.value)} required />
-        </label>
-
-        <label className="block text-sm">
-          <span className="mb-1 block text-[var(--muted-foreground)]">Tags, separated by commas</span>
-          <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="tenancy, survey, district" />
         </label>
 
         {error ? (

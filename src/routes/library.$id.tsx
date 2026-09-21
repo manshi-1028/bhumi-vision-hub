@@ -7,9 +7,9 @@ import { getRecommended, getResearchItem } from "../lib/api";
 export const Route = createFileRoute("/library/$id")({
   head: ({ params }) => ({
     meta: [
-      { title: `Research item ${params.id} | BhoomiSetu` },
-      { name: "description", content: `Details, tags and related reading for research item ${params.id} in the BhoomiSetu repository.` },
-      { property: "og:title", content: `Research item ${params.id} | BhoomiSetu` },
+      { title: `Research item ${params.id.slice(0, 8)} | BhoomiSetu` },
+      { name: "description", content: `Details, tags and related reading for research item ${params.id.slice(0, 8)} in the BhoomiSetu repository.` },
+      { property: "og:title", content: `Research item ${params.id.slice(0, 8)} | BhoomiSetu` },
       { property: "og:description", content: "Research item detail in the BhoomiSetu repository. Sample data." },
     ],
   }),
@@ -47,7 +47,7 @@ function Detail() {
               <Badge>{item.data.topic}</Badge>
               <Badge>{item.data.state}</Badge>
               <Badge>{item.data.year}</Badge>
-              <Badge>Reference {item.data.id}</Badge>
+              <Badge>Reference {item.data.id.slice(0, 8)}</Badge>
             </div>
           </header>
 
@@ -64,6 +64,13 @@ function Detail() {
               ))}
             </div>
           </section>
+
+          {item.data.source ? (
+            <section className="panel p-5">
+              <h2 className="text-lg">Source</h2>
+              <p className="mt-2 text-sm text-[var(--muted-foreground)]">{item.data.source}</p>
+            </section>
+          ) : null}
 
           <section>
             <h2 className="mb-3 text-lg">Recommended</h2>

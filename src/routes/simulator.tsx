@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Page, PageHeading, Protected } from "../components/site";
 import { ErrorBox, Loading } from "../components/states";
 import { LineChart } from "../components/charts";
-import { LEVERS, getStates, runSimulation, type Lever } from "../lib/api";
+import { getPolicyLevers, getStates, runSimulation } from "../lib/api";
 
 export const Route = createFileRoute("/simulator")({
   head: () => ({
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/simulator")({
         content: "Project the effect of land governance policy levers on state indicators using a simplified model on sample data.",
       },
       { property: "og:title", content: "Policy simulator | BhoomiSetu" },
-      { property: "og:description", content: "Simplified projections for four land governance policy levers. Sample data." },
+      { property: "og:description", content: "Simplified projections for land governance policy levers. Sample data." },
     ],
   }),
   component: () => (
@@ -26,14 +26,24 @@ export const Route = createFileRoute("/simulator")({
 });
 
 function Simulator() {
-  const [state, setState] = useState("Bihar");
-  const [lever, setLever] = useState<Lever>("Land records digitization");
+  const [state, setState] = useState("");
+  const [leverId, setLeverId] = useState("");
   const [intensity, setIntensity] = useState(50);
 
+  const { data: states } = useQuery({ queryKey: ["states"], queryFn: getStates });
+  const { data: levers } = useQuery({ queryKey: ["policyLevers"], queryFn: getPolicyLevers });
+
+  // Auto-select first state and lever when data loads
+  if (states && states.length > 0 && !state) setState(states[0]!);
+  if (levers && levers.length > 0 && !leverId) setLeverId(levers[0]!.id);
+
   const query = useQuery({
-    queryKey: ["simulation", state, lever, intensity],
-    queryFn: () => runSimulation(state, lever, intensity),
+    queryKey: ["simulation", state, leverId, intensity],
+    queryFn: () => runSimulation(state, leverId, intensity),
+    enabled: !!state && !!leverId,
   });
+
+  const selectedLever = levers?.find((l) => l.id === leverId);
 
   return (
     <Page>
@@ -46,16 +56,16 @@ function Simulator() {
         <label className="block text-sm">
           <span className="mb-1 block text-[var(--muted-foreground)]">State</span>
           <select value={state} onChange={(e) => setState(e.target.value)}>
-            {getStates().map((s) => (
+            {(states ?? []).map((s) => (
               <option key={s}>{s}</option>
             ))}
           </select>
         </label>
         <label className="block text-sm">
           <span className="mb-1 block text-[var(--muted-foreground)]">Policy lever</span>
-          <select value={lever} onChange={(e) => setLever(e.target.value as Lever)}>
-            {LEVERS.map((l) => (
-              <option key={l}>{l}</option>
+          <select value={leverId} onChange={(e) => setLeverId(e.target.value)}>
+            {(levers ?? []).map((l) => (
+              <option key={l.id} value={l.id}>{l.name}</option>
             ))}
           </select>
         </label>
@@ -64,6 +74,14 @@ function Simulator() {
           <input type="range" min={0} max={100} step={1} value={intensity} onChange={(e) => setIntensity(Number(e.target.value))} />
         </label>
       </div>
+
+      {selectedLever ? (
+        <p className="mb-4 text-sm text-[var(--muted-foreground)]">{selectedLever.description}</p>
+      ) : null}
+
+      <p className="mb-4 text-xs text-[var(--muted-foreground)]">
+        Projections use a simplified model on sample data. This is a demonstration, not a real policy prediction system.
+      </p>
 
       {query.isPending ? <Loading /> : null}
       {query.isError ? <ErrorBox message={(query.error as Error).message} onRetry={() => query.refetch()} /> : null}

@@ -7,9 +7,9 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Login | BhoomiSetu" },
-      { name: "description", content: "Sign in to submit research or review submissions on the BhoomiSetu prototype." },
+      { name: "description", content: "Sign in to submit research or review submissions on the BhoomiSetu platform." },
       { property: "og:title", content: "Login | BhoomiSetu" },
-      { property: "og:description", content: "Demo sign in for the BhoomiSetu prototype, SIH26019." },
+      { property: "og:description", content: "Sign in for the BhoomiSetu platform, SIH26019." },
     ],
   }),
   component: Login,
@@ -31,7 +31,12 @@ function Login() {
       await signIn(email, password);
       navigate({ to: "/" });
     } catch (err) {
-      setError((err as Error).message);
+      const msg = (err as Error).message;
+      if (msg.includes("Invalid login")) {
+        setError("Invalid email or password. Please check your credentials.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setBusy(false);
     }
@@ -39,7 +44,7 @@ function Login() {
 
   return (
     <Page>
-      <PageHeading title="Sign in" description="Demonstration accounts only. No real credentials are stored." />
+      <PageHeading title="Sign in" description="Use your BhoomiSetu account to submit research or review submissions." />
       <div className="grid gap-6 md:grid-cols-2">
         <form className="panel space-y-4 p-5" onSubmit={onSubmit}>
           <label className="block text-sm">
@@ -73,7 +78,6 @@ function Login() {
             <li>official@example.gov.in, full access including the review queue.</li>
             <li>institution@example.ac.in, dashboard, library, simulator and submissions.</li>
             <li>researcher@example.ac.in, dashboard, library, simulator and submissions.</li>
-            <li>Any other address is treated as a researcher.</li>
           </ul>
         </section>
       </div>

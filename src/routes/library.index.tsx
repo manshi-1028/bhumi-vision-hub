@@ -11,7 +11,7 @@ export const Route = createFileRoute("/library/")({
       { title: "Research repository | BhoomiSetu" },
       {
         name: "description",
-        content: "Search sample policy briefs, datasets, field studies and reports on land governance across twelve states.",
+        content: "Search policy briefs, datasets, field studies and reports on land governance across twelve states.",
       },
       { property: "og:title", content: "Research repository | BhoomiSetu" },
       { property: "og:description", content: "Searchable repository of land governance research. Sample data." },
@@ -29,6 +29,10 @@ function Library() {
   const [state, setState] = useState("");
   const [year, setYear] = useState("");
   const [page, setPage] = useState(1);
+
+  const { data: states } = useQuery({ queryKey: ["states"], queryFn: getStates });
+  const { data: topics } = useQuery({ queryKey: ["topics"], queryFn: getTopics });
+  const { data: types } = useQuery({ queryKey: ["types"], queryFn: getTypes });
 
   const filters = { q, type, topic, state, year, page, pageSize: 10 };
   const query = useQuery({
@@ -50,7 +54,7 @@ function Library() {
     <Page>
       <PageHeading
         title="Research repository"
-        description="Sample research items on land records, disputes, ownership equity, climate resilience, urban land use and tenancy."
+        description="Research items on land records, disputes, ownership equity, climate resilience, urban land use and tenancy."
       />
 
       <div className="panel mb-6 space-y-4 p-4">
@@ -71,7 +75,7 @@ function Library() {
             <span className="mb-1 block text-[var(--muted-foreground)]">Type</span>
             <select value={type} onChange={(e) => { setType(e.target.value); setPage(1); }}>
               <option value="">All types</option>
-              {getTypes().map((t) => (
+              {(types ?? []).map((t) => (
                 <option key={t}>{t}</option>
               ))}
             </select>
@@ -80,7 +84,7 @@ function Library() {
             <span className="mb-1 block text-[var(--muted-foreground)]">Topic</span>
             <select value={topic} onChange={(e) => { setTopic(e.target.value); setPage(1); }}>
               <option value="">All topics</option>
-              {getTopics().map((t) => (
+              {(topics ?? []).map((t) => (
                 <option key={t}>{t}</option>
               ))}
             </select>
@@ -89,7 +93,7 @@ function Library() {
             <span className="mb-1 block text-[var(--muted-foreground)]">State</span>
             <select value={state} onChange={(e) => { setState(e.target.value); setPage(1); }}>
               <option value="">All states</option>
-              {getStates().map((s) => (
+              {(states ?? []).map((s) => (
                 <option key={s}>{s}</option>
               ))}
             </select>
@@ -134,7 +138,7 @@ function Library() {
                     {item.title}
                   </Link>
                   <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                    {item.type} | {item.topic} | {item.state} | {item.year} | Reference {item.id}
+                    {item.type} | {item.topic} | {item.state} | {item.year} | Reference {item.id.slice(0, 8)}
                   </p>
                   <p className="mt-2 line-clamp-2 text-sm text-[var(--muted-foreground)]">{item.summary}</p>
                 </li>

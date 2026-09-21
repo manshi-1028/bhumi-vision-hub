@@ -71,7 +71,7 @@ function Header() {
             {user ? (
               <>
                 <span className="text-[var(--muted-foreground)]">
-                  {user.email} ({user.role})
+                  {user.fullName ?? user.email} ({user.role})
                 </span>
                 <button
                   type="button"
@@ -81,7 +81,7 @@ function Header() {
                     navigate({ to: "/" });
                   }}
                 >
-                  Logout
+                  Sign out
                 </button>
               </>
             ) : (
@@ -109,7 +109,7 @@ function Header() {
             {user ? (
               <>
                 <span className="text-[var(--muted-foreground)]">
-                  {user.email} ({user.role})
+                  {user.fullName ?? user.email} ({user.role})
                 </span>
                 <button
                   type="button"
@@ -120,7 +120,7 @@ function Header() {
                     navigate({ to: "/" });
                   }}
                 >
-                  Logout
+                  Sign out
                 </button>
               </>
             ) : (
