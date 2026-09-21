@@ -86,16 +86,18 @@ export async function getDashboard(year: number): Promise<DashboardData> {
   const climateIndex = Math.round((sum(metrics.map((m) => m.climate_vuln_index ?? 0)) / n) * 100) / 100;
 
   // Research outputs count
-  const { count: researchOutputs } = await supabase
+  const { count: researchOutputs, error: rErr } = await supabase
     .from("evidence")
     .select("id", { count: "exact", head: true })
     .lte("year", year);
+  if (rErr) throw new Error("Failed to load research output count.");
 
   // Time series: aggregate across all regions for each year
-  const { data: allMetrics } = await supabase
+  const { data: allMetrics, error: tsErr } = await supabase
     .from("land_metrics")
     .select("year, records_digitized_pct, built_up_pct")
     .order("year");
+  if (tsErr) throw new Error("Failed to load time series data.");
 
   const yearMap = new Map<number, { dig: number[]; bu: number[] }>();
   for (const m of allMetrics ?? []) {
@@ -122,7 +124,11 @@ export async function getDashboard(year: number): Promise<DashboardData> {
     .slice(0, 10);
 
   // Research by topic
-  const { data: evidence } = await supabase.from("evidence").select("topic").lte("year", year);
+  const { data: evidence, error: evErr } = await supabase
+    .from("evidence")
+    .select("topic")
+    .lte("year", year);
+  if (evErr) throw new Error("Failed to load research by topic.");
   const topicCount = new Map<string, number>();
   for (const e of evidence ?? []) {
     if (e.topic) topicCount.set(e.topic, (topicCount.get(e.topic) ?? 0) + 1);
@@ -132,7 +138,11 @@ export async function getDashboard(year: number): Promise<DashboardData> {
     .sort((a, b) => b.value - a.value);
 
   // Project progress
-  const { data: projects } = await supabase.from("projects").select("title, progress_pct").order("title");
+  const { data: projects, error: pErr } = await supabase
+    .from("projects")
+    .select("title, progress_pct")
+    .order("title");
+  if (pErr) throw new Error("Failed to load project progress.");
   const progress = (projects ?? []).map((p) => ({ label: p.title, value: p.progress_pct ?? 0 }));
 
   return {
@@ -191,12 +201,16 @@ export async function searchLibrary(query: LibraryQuery): Promise<LibraryResult>
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
+  const selectRelation = query.state ? "regions!inner (name)" : "regions (name)";
+
   let db = supabase
     .from("evidence")
-    .select(`
+    .select(
+      `
       id, title, summary, type, topic, tags, year, source,
-      region_id, regions (name)
-    `, { count: "exact" });
+      region_id, ${selectRelation}
+    `, { count: "exact" },
+    );
 
   if (query.q && query.q.trim()) {
     db = db.or(`title.ilike.%${query.q.trim()}%,summary.ilike.%${query.q.trim()}%`);
@@ -204,11 +218,7 @@ export async function searchLibrary(query: LibraryQuery): Promise<LibraryResult>
   if (query.type) db = db.eq("type", query.type);
   if (query.topic) db = db.eq("topic", query.topic);
   if (query.year) db = db.eq("year", Number(query.year));
-
-  // For state filter, we need to join regions by name — Supabase supports filtering on nested
-  if (query.state) {
-    db = db.eq("regions.name", query.state);
-  }
+  if (query.state) db = db.eq("regions.name", query.state);
 
   db = db.order("created_at", { ascending: false }).range(from, to);
 
@@ -267,15 +277,29 @@ export async function getRecommended(id: string): Promise<LibraryItem[]> {
 
   if (!current) return [];
 
-  // Query items with matching topic or region, excluding current
-  const { data, error } = await supabase
+  // Build filter: match on topic, or on region if present
+  const orParts: string[] = [];
+  if (current.topic) {
+    orParts.push(`topic.eq.${current.topic.replace(/,/g, "\,")}`);
+  }
+  if (current.region_id) {
+    orParts.push(`region_id.eq.${current.region_id}`);
+  }
+  const orFilter = orParts.length > 0 ? orParts.join(",") : undefined;
+
+  let dbQuery = supabase
     .from("evidence")
     .select(`
       id, title, summary, type, topic, tags, year, source,
       region_id, regions (name)
     `)
-    .neq("id", id)
-    .or(`topic.eq.${current.topic},region_id.eq.${current.region_id}`)
+    .neq("id", id);
+
+  if (orFilter) {
+    dbQuery = dbQuery.or(orFilter);
+  }
+
+  const { data, error } = await dbQuery
     .order("created_at", { ascending: false })
     .limit(5);
 
