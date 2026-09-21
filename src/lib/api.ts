@@ -338,7 +338,8 @@ export async function submitResearch(input: {
   if (!input.title.trim()) throw new Error("Title is required.");
   if (!input.body.trim()) throw new Error("Summary is required.");
 
-  const { data: userData } = await supabase.auth.getUser();
+  const { data: userData, error: authErr } = await supabase.auth.getUser();
+  if (authErr) throw new Error("Unable to verify your session. Please sign in again.");
   if (!userData.user) throw new Error("You must be signed in to submit.");
 
   const { data, error } = await supabase
@@ -457,7 +458,7 @@ export async function runSimulation(
     .maybeSingle();
   if (!region) throw new Error(`No data for ${state}.`);
 
-  const { data: metrics } = await supabase
+  const { data: metrics, error: metErr } = await supabase
     .from("land_metrics")
     .select("records_digitized_pct, pending_disputes, avg_resolution_days, women_owned_pct, climate_vuln_index")
     .eq("region_id", region.id)
@@ -465,15 +466,17 @@ export async function runSimulation(
     .limit(1)
     .maybeSingle();
 
+  if (metErr) throw new Error(`Failed to load metrics for ${state}.`);
   if (!metrics) throw new Error(`No metrics found for ${state}.`);
 
   // Get the selected policy lever
-  const { data: lever } = await supabase
+  const { data: lever, error: leverErr } = await supabase
     .from("policy_levers")
     .select("name, eff_digitization, eff_disputes_pct, eff_resolution_days, eff_women_owned")
     .eq("id", leverId)
     .maybeSingle();
 
+  if (leverErr) throw new Error("Failed to load the selected policy lever.");
   if (!lever) throw new Error("Policy lever not found.");
 
   const k = intensity / 100;
