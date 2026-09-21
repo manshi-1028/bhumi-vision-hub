@@ -116,7 +116,7 @@ export async function getDashboard(year: number): Promise<DashboardData> {
     kpis,
     digitizedSeries: { labels, values: DIGITIZED_SERIES },
     builtUpSeries: { labels, values: BUILT_UP_SERIES },
-    disputesByState: DISPUTES_BY_STATE[year],
+    disputesByState: DISPUTES_BY_STATE[year]!,
     researchByTopic,
     progress: PROGRESS_COMPONENTS,
   };
@@ -275,7 +275,7 @@ export async function runSimulation(state: string, lever: Lever, intensity: numb
     projected: Number((cfg.value * (1 + (cfg.effect / 100) * k)).toFixed(2)),
   }));
 
-  const headlineRow = rows[0];
+  const headlineRow = rows[0]!;
   const years = ["2026", "2027", "2028", "2029", "2030"];
   const baselineSeries = years.map((_, i) => Number((headlineRow.baseline + i * 1.2).toFixed(2)));
   const projectedSeries = years.map((_, i) =>
@@ -286,6 +286,7 @@ export async function runSimulation(state: string, lever: Lever, intensity: numb
     rows,
     years,
     baselineSeries,
+
     projectedSeries,
     headline: `${headlineRow.indicator} (${headlineRow.unit})`,
   };

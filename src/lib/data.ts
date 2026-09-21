@@ -89,12 +89,12 @@ function makeItems(): ResearchItem[] {
   const items: ResearchItem[] = [];
   let n = 0;
   for (const topic of TOPICS) {
-    const stems = TITLE_STEMS[topic];
+    const stems = TITLE_STEMS[topic]!;
     for (let i = 0; i < 8; i++) {
       n += 1;
-      const state = STATES[(n * 5) % STATES.length];
+      const state = STATES[(n * 5) % STATES.length]!;
       const year = 2017 + ((n * 3) % 9);
-      const type = TYPES[n % TYPES.length];
+      const type = TYPES[n % TYPES.length]!;
       items.push({
         id: `RS-${String(n).padStart(3, "0")}`,
         title: `${stems[i % stems.length]} ${state}, ${year}`,
@@ -107,7 +107,8 @@ function makeItems(): ResearchItem[] {
           `collected between ${year - 2} and ${year}. It reports district level variation, identifies the administrative ` +
           `steps that add the most delay, and lists options available to state revenue departments. All figures are ` +
           `illustrative sample data prepared for the SIH26019 prototype.`,
-        tags: [topic.split(" ")[0].toLowerCase(), state.split(" ")[0].toLowerCase(), String(year), type.split(" ")[0].toLowerCase()],
+        tags: [topic.split(" ")[0]!.toLowerCase(), state.split(" ")[0]!.toLowerCase(), String(year), type.split(" ")[0]!.toLowerCase()],
+
         status: "approved",
       });
     }
@@ -144,7 +145,7 @@ export const KPIS_BY_YEAR: Record<number, Kpis> = {
 
 export const DISPUTES_BY_STATE: Record<number, { label: string; value: number }[]> = Object.fromEntries(
   YEARS.map((y) => {
-    const base = KPIS_BY_YEAR[y].pendingDisputes / 1000;
+    const base = KPIS_BY_YEAR[y]!.pendingDisputes / 1000;
     const weights = [0.16, 0.13, 0.11, 0.1, 0.09, 0.085, 0.08, 0.075, 0.07, 0.06];
     const order = [
       "Uttar Pradesh",
@@ -158,7 +159,7 @@ export const DISPUTES_BY_STATE: Record<number, { label: string; value: number }[
       "Assam",
       "Punjab",
     ];
-    return [y, order.map((s, i) => ({ label: s, value: Math.round(base * weights[i]) }))];
+    return [y, order.map((s, i) => ({ label: s, value: Math.round(base * weights[i]!) }))];
   }),
 );
 
