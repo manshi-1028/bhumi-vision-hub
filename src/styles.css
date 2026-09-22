@@ -2,16 +2,18 @@
 @source "../src";
 
 /*
- * BhoomiSetu design system.
- * Deep forest green primary, warm off-white page, charcoal text, one amber accent.
- * Sharp corners, 1px borders, no shadows, no gradients.
+ * BhoomiSetu design system v2 — national land-intelligence platform.
+ * Deep forest green primary, warm ivory base, dark emerald sections,
+ * restrained amber accent. Cadastral/topographic motif language.
+ * The v1 utility names (panel, btn, btn-outline, spin-ring) and color
+ * tokens are preserved for compatibility with existing markup.
  */
 
 @theme inline {
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-foreground: var(--foreground);
@@ -26,31 +28,52 @@
 }
 
 :root {
-  --background: oklch(0.978 0.006 95);
-  --surface: oklch(0.992 0.004 95);
-  --foreground: oklch(0.24 0.012 95);
-  --muted-foreground: oklch(0.46 0.012 95);
+  /* Light base */
+  --background: oklch(0.977 0.008 95);
+  --surface: oklch(0.993 0.005 95);
+  --foreground: oklch(0.235 0.015 160);
+  --muted-foreground: oklch(0.45 0.018 160);
   --primary: oklch(0.335 0.055 160);
   --primary-foreground: oklch(0.985 0.005 95);
   --primary-soft: oklch(0.335 0.055 160 / 8%);
   --border: oklch(0.335 0.055 160 / 18%);
-  --accent: oklch(0.56 0.13 62);
+  --accent: oklch(0.55 0.125 62);
+  /* New v2 tokens */
+  --primary-bright: oklch(0.52 0.09 160);
+  --primary-soft-strong: oklch(0.335 0.055 160 / 14%);
+  --ink: oklch(0.19 0.022 160);
+  --dark-surface: oklch(0.23 0.032 160);
+  --dark-raised: oklch(0.265 0.034 160);
+  --dark-border: oklch(0.65 0.06 160 / 22%);
+  --dark-foreground: oklch(0.93 0.012 95);
+  --dark-muted: oklch(0.68 0.03 160);
+  --accent-bright: oklch(0.72 0.13 70);
+  --accent-soft: oklch(0.55 0.125 62 / 12%);
+  --grid-line: oklch(0.335 0.055 160 / 7%);
+  --shadow-panel: 0 1px 2px oklch(0.19 0.022 160 / 6%), 0 6px 18px -8px oklch(0.19 0.022 160 / 12%);
+  --shadow-raised: 0 2px 4px oklch(0.19 0.022 160 / 8%), 0 12px 28px -10px oklch(0.19 0.022 160 / 18%);
+  --glow-primary: 0 0 0 3px oklch(0.52 0.09 160 / 20%);
 }
+
+/* ------------------------------ base layer ------------------------------ */
 
 @layer base {
   * {
     border-color: var(--border);
-    border-radius: 0;
   }
 
   html {
     font-family: var(--font-sans);
+    scroll-behavior: smooth;
   }
 
   body {
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
   }
 
   h1,
@@ -60,6 +83,7 @@
     font-family: var(--font-serif);
     font-weight: 600;
     letter-spacing: -0.01em;
+    color: var(--ink);
   }
 
   ul.disc {
@@ -73,42 +97,109 @@
     background-color: var(--surface);
     border: 1px solid var(--border);
     color: var(--foreground);
-    padding: 0.5rem 0.625rem;
+    padding: 0.55rem 0.7rem;
     width: 100%;
     font-size: 0.875rem;
+    font-family: var(--font-sans);
+    transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  }
+
+  input:hover,
+  select:hover,
+  textarea:hover {
+    border-color: oklch(0.335 0.055 160 / 34%);
   }
 
   input:focus,
   select:focus,
   textarea:focus {
-    outline: 2px solid var(--primary);
-    outline-offset: -1px;
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: var(--glow-primary);
   }
 
   input[type="range"] {
     padding: 0;
     border: 0;
+    background: transparent;
     accent-color: var(--primary);
+    box-shadow: none;
+  }
+
+  input[type="range"]:focus {
+    box-shadow: var(--glow-primary);
+  }
+
+  ::selection {
+    background: oklch(0.52 0.09 160 / 24%);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--primary-bright);
+    outline-offset: 2px;
+  }
+
+  button:not(:focus-visible) {
+    outline: none;
   }
 }
+
+/* ------------------------------ dark surfaces ------------------------------ */
+
+@utility dark-section {
+  background:
+    radial-gradient(1100px 420px at 85% -10%, oklch(0.34 0.05 160 / 55%), transparent 60%),
+    linear-gradient(180deg, oklch(0.245 0.032 160), oklch(0.215 0.03 160));
+  color: var(--dark-foreground);
+}
+
+@utility dark-section-raised {
+  background-color: var(--dark-raised);
+  border: 1px solid var(--dark-border);
+  color: var(--dark-foreground);
+}
+
+/* ------------------------------ components ------------------------------ */
 
 @utility panel {
   background-color: var(--surface);
   border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+}
+
+@utility panel-hover {
+  transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
+  &:hover {
+    box-shadow: var(--shadow-raised);
+    transform: translateY(-1px);
+    border-color: oklch(0.335 0.055 160 / 30%);
+  }
 }
 
 @utility btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
   border: 1px solid var(--primary);
   background-color: var(--primary);
   color: var(--primary-foreground);
-  padding: 0.5rem 0.9rem;
+  padding: 0.55rem 1rem;
   font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  &:hover {
-    background-color: oklch(0.27 0.05 160);
+  position: relative;
+  transition: background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+  &:hover:not(:disabled) {
+    background-color: oklch(0.29 0.052 160);
+    box-shadow: var(--glow-primary);
+    transform: translateY(-1px);
+  }
+  &:active:not(:disabled) {
+    transform: translateY(0);
   }
   &:disabled {
     opacity: 0.5;
@@ -120,15 +211,98 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--border);
+  gap: 0.5rem;
+  border: 1px solid oklch(0.335 0.055 160 / 34%);
   background-color: var(--surface);
   color: var(--foreground);
-  padding: 0.5rem 0.9rem;
+  padding: 0.55rem 1rem;
   font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  &:hover {
+  transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+  &:hover:not(:disabled) {
     background-color: var(--primary-soft);
+    border-color: oklch(0.335 0.055 160 / 45%);
+    transform: translateY(-1px);
   }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@utility btn-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid oklch(0.72 0.13 70 / 60%);
+  background-color: oklch(0.72 0.13 70 / 14%);
+  color: var(--accent-bright);
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+  &:hover:not(:disabled) {
+    background-color: oklch(0.72 0.13 70 / 24%);
+    border-color: oklch(0.72 0.13 70 / 80%);
+    transform: translateY(-1px);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@utility chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--border);
+  background-color: var(--primary-soft);
+  color: var(--primary);
+  padding: 0.15rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-md);
+  text-transform: uppercase;
+}
+
+@utility eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--primary-bright);
+}
+
+@utility eyebrow-dark {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+}
+
+@utility metric-num {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+@utility card-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
 }
 
 @utility spin-ring {
@@ -140,8 +314,264 @@
   animation: bs-spin 0.8s linear infinite;
 }
 
+/* ------------------------------ motion ------------------------------ */
+
 @keyframes bs-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes bs-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bs-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes bs-reveal-x {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes bs-draw {
+  from {
+    stroke-dashoffset: var(--bs-dash-len, 2400);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes bs-rise {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes bs-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes bs-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(-1.2%, 1%, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes bs-pulse-soft {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes bs-count-blur {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.anim-up {
+  animation: bs-fade-up 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-in {
+  animation: bs-fade-in 700ms ease both;
+}
+
+.anim-reveal {
+  animation: bs-reveal-x 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-line {
+  stroke-dasharray: var(--bs-dash-len, 2400);
+  animation: bs-draw 1500ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.anim-rise {
+  transform-origin: bottom;
+  animation: bs-rise 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-grow {
+  transform-origin: left;
+  animation: bs-grow-x 1100ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-drift {
+  animation: bs-drift 26s ease-in-out infinite;
+}
+
+.anim-pulse-soft {
+  animation: bs-pulse-soft 5s ease-in-out infinite;
+}
+
+.anim-count {
+  animation: bs-count-blur 500ms ease both;
+}
+
+/* Stagger helpers (applied with inline animationDelay) */
+.stagger > * {
+  animation: bs-fade-up 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 60ms; }
+.stagger > *:nth-child(2) { animation-delay: 120ms; }
+.stagger > *:nth-child(3) { animation-delay: 180ms; }
+.stagger > *:nth-child(4) { animation-delay: 240ms; }
+.stagger > *:nth-child(5) { animation-delay: 300ms; }
+.stagger > *:nth-child(6) { animation-delay: 360ms; }
+.stagger > *:nth-child(7) { animation-delay: 420ms; }
+.stagger > *:nth-child(8) { animation-delay: 480ms; }
+.stagger > *:nth-child(9) { animation-delay: 540ms; }
+.stagger > *:nth-child(10) { animation-delay: 600ms; }
+
+/* Scroll-triggered reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 700ms cubic-bezier(0.22, 1, 0.36, 1), transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Decorative cadastral grid overlay */
+.bs-grid-overlay {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.bs-grid-overlay-dark {
+  background-image:
+    linear-gradient(oklch(0.8 0.08 160 / 6%) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.8 0.08 160 / 6%) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* Route transition wrapper */
+.page-enter {
+  animation: bs-fade-up 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Navigation links with animated underline */
+.nav-link {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.25rem 0;
+  color: var(--muted-foreground);
+  transition: color 180ms ease;
+}
+
+.nav-link:hover {
+  color: var(--foreground);
+}
+
+.nav-link.active {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.nav-underline {
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-link:hover .nav-underline,
+.nav-link.active .nav-underline {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .anim-up,
+  .anim-in,
+  .anim-reveal,
+  .anim-line,
+  .anim-rise,
+  .anim-grow,
+  .anim-drift,
+  .anim-pulse-soft,
+  .anim-count,
+  .page-enter,
+  .stagger > * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin-ring {
+    animation-duration: 1.6s;
+  }
+}
+
+/* Parcel codes scale with the SVG viewBox: below ~480px viewport they render
+   under 7px and become unreadable noise. Hide them on small phones; the
+   tooltip and detail panel still identify each region. */
+@media (max-width: 479px) {
+  .map-code {
+    display: none;
   }
 }

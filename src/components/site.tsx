@@ -2,6 +2,7 @@ import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "../lib/auth";
 import { Loading } from "./states";
+import { BrandMark } from "./brand";
 
 /** Inline SVG, 1.5px strokes, currentColor. */
 export function MenuIcon({ open }: { open: boolean }) {
@@ -22,7 +23,7 @@ export function MenuIcon({ open }: { open: boolean }) {
 
 const NAV = [
   { to: "/", label: "Dashboard" },
-  { to: "/library", label: "Library" },
+  { to: "/library", label: "Research Library" },
   { to: "/simulator", label: "Simulator" },
   { to: "/submit", label: "Submit" },
   { to: "/review", label: "Review" },
@@ -31,8 +32,9 @@ const NAV = [
 
 function SampleBadge() {
   return (
-    <span className="border border-[var(--border)] px-2 py-0.5 text-[11px] tracking-wide text-[var(--muted-foreground)] uppercase">
-      Sample data
+    <span className="inline-flex items-center gap-1.5 border border-[oklch(0.72_0.13_70/45%)] bg-[oklch(0.72_0.13_70/12%)] px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-[var(--accent-bright)] uppercase">
+      <span className="anim-pulse-soft inline-block h-1.5 w-1.5 rounded-full bg-[var(--accent-bright)]" aria-hidden="true" />
+      Demo Data
     </span>
   );
 }
@@ -49,33 +51,41 @@ function Header() {
   });
 
   return (
-    <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface)]">
+    <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[oklch(0.977_0.008_95/88%)] backdrop-blur-md">
       <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-3">
-          <Link to="/" className="min-w-0 truncate font-serif text-lg font-semibold text-[var(--primary)]">
-            BhoomiSetu
+          <Link to="/" className="flex min-w-0 items-center gap-2.5 text-[var(--primary)]">
+            <BrandMark size={30} />
+            <span className="font-serif text-lg font-semibold tracking-tight">BhoomiSetu</span>
           </Link>
           <span className="hidden sm:inline">
             <SampleBadge />
-          </span>
+</span>
         </div>
         <div className="flex shrink-0 items-center gap-4">
-          <nav className="hidden items-center gap-4 text-sm md:flex">
+          <nav className="hidden items-center gap-5 text-sm md:flex" aria-label="Primary">
             {links.map((l) => (
-              <Link key={l.to} to={l.to} className="hover:underline" activeProps={{ className: "underline font-semibold" }}>
+              <Link
+                key={l.to}
+                to={l.to}
+                className="nav-link"
+                activeProps={{ className: "nav-link active" }}
+              >
                 {l.label}
+                <span className="nav-underline" aria-hidden="true" />
               </Link>
             ))}
           </nav>
           <div className="hidden items-center gap-3 text-xs md:flex">
             {user ? (
               <>
-                <span className="text-[var(--muted-foreground)]">
-                  {user.fullName ?? user.email} ({user.role})
+                <span className="flex flex-col items-end leading-tight">
+                  <span className="font-semibold text-[var(--foreground)]">{user.fullName ?? user.email}</span>
+                  <span className="font-semibold uppercase tracking-wide text-[var(--accent)]">{user.role}</span>
                 </span>
                 <button
                   type="button"
-                  className="btn-outline"
+                  className="btn-outline !px-3 !py-1.5"
                   onClick={() => {
                     signOut();
                     navigate({ to: "/" });
@@ -85,21 +95,21 @@ function Header() {
                 </button>
               </>
             ) : (
-              <Link to="/login" className="btn">
+              <Link to="/login" className="btn !px-3.5 !py-1.5">
                 Login
               </Link>
             )}
           </div>
-          <button type="button" className="btn-outline md:hidden" aria-label="Menu" onClick={() => setOpen((v) => !v)}>
+          <button type="button" className="btn-outline md:hidden !px-2.5 !py-1.5" aria-label="Menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
             <MenuIcon open={open} />
           </button>
         </div>
       </div>
       {open ? (
-        <div className="border-t border-[var(--border)] px-4 py-3 md:hidden">
-          <nav className="flex flex-col gap-2 text-sm">
+        <div className="anim-up border-t border-[var(--border)] px-4 py-3 md:hidden">
+          <nav className="flex flex-col gap-1 text-sm" aria-label="Mobile">
             {links.map((l) => (
-              <Link key={l.to} to={l.to} onClick={() => setOpen(false)} className="py-1">
+              <Link key={l.to} to={l.to} onClick={() => setOpen(false)} className="rounded-[var(--radius-md)] px-2 py-1.5 hover:bg-[var(--primary-soft)]">
                 {l.label}
               </Link>
             ))}
@@ -108,8 +118,9 @@ function Header() {
             <SampleBadge />
             {user ? (
               <>
-                <span className="text-[var(--muted-foreground)]">
-                  {user.fullName ?? user.email} ({user.role})
+                <span className="flex flex-col leading-tight">
+                  <span className="font-semibold">{user.fullName ?? user.email}</span>
+                  <span className="font-semibold uppercase tracking-wide text-[var(--accent)]">{user.role}</span>
                 </span>
                 <button
                   type="button"
@@ -137,11 +148,16 @@ function Header() {
 
 function Footer() {
   return (
-    <footer className="border-t border-[var(--border)] bg-[var(--surface)]">
-      <div className="mx-auto max-w-6xl px-4 py-4 text-xs text-[var(--muted-foreground)]">
-        BhoomiSetu, SIH26019, {new Date().getFullYear()}
+    <footer className="mt-10 border-t border-[var(--border)] bg-[var(--surface)]">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 text-xs text-[var(--muted-foreground)]">
+        <span className="flex items-center gap-2">
+          <BrandMark size={16} />
+          BhoomiSetu, SIH26019, {new Date().getFullYear()}
+        </span>
+        <span className="hidden sm:inline">National land governance intelligence, demonstration environment</span>
       </div>
-    </footer>
+      <p className="sr-only">All displayed figures are sample data prepared for the SIH26019 prototype.</p>
+      </footer>
   );
 }
 
@@ -149,22 +165,36 @@ export function Page({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
+      <main className="page-enter mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
       <Footer />
     </div>
   );
 }
 
-export function PageHeading({ title, description }: { title: string; description?: string }) {
+export function PageHeading({
+  eyebrow,
+  title,
+  description,
+  action,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  action?: ReactNode;
+}) {
   return (
-    <div className="mb-6">
-      <h1 className="text-2xl sm:text-3xl">{title}</h1>
-      {description ? <p className="mt-2 max-w-3xl text-sm text-[var(--muted-foreground)]">{description}</p> : null}
+    <div className="anim-up mb-8">
+      {eyebrow ? <p className="eyebrow mb-2">{eyebrow}</p> : null}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h1 className="font-serif text-3xl leading-tight sm:text-4xl">{title}</h1>
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </div>
+      {description ? <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">{description}</p> : null}
     </div>
   );
 }
 
-/** Client side guard for the mock auth model. */
+/** Client side role guard. Redirects unauthenticated users to /login. */
 export function Protected({ roles, children }: { roles?: readonly string[]; children: ReactNode }) {
   const { user, ready } = useAuth();
   const router = useRouter();

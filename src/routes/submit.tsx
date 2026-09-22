@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Page, PageHeading, Protected } from "../components/site";
 import { getStates, getTopics, getTypes, submitResearch } from "../lib/api";
+import { Reveal } from "../components/motion";
 
 export const Route = createFileRoute("/submit")({
   head: () => ({
@@ -62,57 +63,129 @@ function SubmitPage() {
 
   return (
     <Page>
-      <PageHeading title="Submit research" description="Submissions enter the review queue and appear in the repository once an official approves them." />
+      <PageHeading
+        eyebrow="Contribute to the evidence base"
+        title="Submit research"
+        description="Submissions enter the official review queue and appear in the public repository once an official approves them. Researchers and institutions can both contribute."
+      />
 
-      <form className="panel space-y-4 p-5" onSubmit={onSubmit}>
-        <label className="block text-sm">
-          <span className="mb-1 block text-[var(--muted-foreground)]">Title</span>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required />
-        </label>
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.6fr_1fr]">
+        <Reveal>
+          <form className="panel space-y-6 p-6 sm:p-8" onSubmit={onSubmit} aria-label="Research submission form">
+            <label className="block">
+              <span className="card-label mb-1.5 block">Title</span>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                placeholder="Full title of the research output"
+                className="!text-base"
+              />
+            </label>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className="block text-sm">
-            <span className="mb-1 block text-[var(--muted-foreground)]">Type</span>
-            <select value={type} onChange={(e) => setType(e.target.value)}>
-              {(types ?? []).map((t) => (
-                <option key={t}>{t}</option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-[var(--muted-foreground)]">Topic</span>
-            <select value={topic} onChange={(e) => setTopic(e.target.value)}>
-              {(topics ?? []).map((t) => (
-                <option key={t}>{t}</option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-[var(--muted-foreground)]">State</span>
-            <select value={state} onChange={(e) => setState(e.target.value)}>
-              {(states ?? []).map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </label>
-        </div>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+              <label className="block">
+                <span className="card-label mb-1.5 block">Type</span>
+                <select value={type} onChange={(e) => setType(e.target.value)}>
+                  {(types ?? []).map((t) => <option key={t}>{t}</option>)}
+                </select>
+              </label>
+              <label className="block">
+                <span className="card-label mb-1.5 block">Topic</span>
+                <select value={topic} onChange={(e) => setTopic(e.target.value)}>
+                  {(topics ?? []).map((t) => <option key={t}>{t}</option>)}
+                </select>
+              </label>
+              <label className="block">
+                <span className="card-label mb-1.5 block">State</span>
+                <select value={state} onChange={(e) => setState(e.target.value)}>
+                  {(states ?? []).map((s) => <option key={s}>{s}</option>)}
+                </select>
+              </label>
+            </div>
 
-        <label className="block text-sm">
-          <span className="mb-1 block text-[var(--muted-foreground)]">Summary</span>
-          <textarea rows={6} value={summary} onChange={(e) => setSummary(e.target.value)} required />
-        </label>
+            <label className="block">
+              <span className="card-label mb-1.5 flex items-center justify-between">
+                <span>Summary</span>
+                <span className="text-[10px] normal-case tracking-normal text-[var(--muted-foreground)]">
+                  {summary.trim().length} characters
+                </span>
+              </span>
+              <textarea
+                rows={7}
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                required
+                placeholder="Abstract or key findings. Describe the method, the region and period covered, and the headline result."
+                className="!leading-7"
+              />
+            </label>
 
-        {error ? (
-          <p className="border p-3 text-sm" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>
-            {error}
-          </p>
-        ) : null}
-        {done ? <p className="border border-[var(--border)] p-3 text-sm text-[var(--muted-foreground)]">{done}</p> : null}
+            {error ? (
+              <p className="anim-up border p-3.5 text-sm" style={{ borderColor: "var(--accent)", color: "var(--accent)" }} role="alert">
+                {error}
+              </p>
+            ) : null}
+            {done ? (
+              <div className="anim-up flex items-start gap-3 border border-[var(--primary)] bg-[var(--primary-soft)] p-4 text-sm" role="status">
+                <svg className="mt-0.5 shrink-0 text-[var(--primary)]" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                  <circle cx="9" cy="9" r="7.25" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="m5.75 9.25 2.25 2.25 4.25-4.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="text-[var(--foreground)]">{done}</span>
+              </div>
+            ) : null}
 
-        <button type="submit" className="btn" disabled={busy}>
-          {busy ? "Submitting..." : "Submit for review"}
-        </button>
-      </form>
+            <button type="submit" className="btn w-full sm:w-auto" disabled={busy}>
+              {busy ? (
+                <>
+                  <span className="spin-ring !h-4 !w-4 !border" aria-hidden="true" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  Submit for review
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M2 8h11m0 0-4-4m4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </>
+              )}
+            </button>
+          </form>
+        </Reveal>
+
+        <Reveal delay={140}>
+          <aside className="space-y-4">
+            <section className="panel p-5">
+              <h2 className="card-label mb-3">What happens next</h2>
+              <ol className="space-y-3.5 text-sm">
+                {[
+                  ["Submitted", "Your record enters the review queue with pending status."],
+                  ["Official review", "A government official checks the abstract, region and classification."],
+                  ["Published", "Approved records appear in the public research repository."],
+                ].map(([t, d], i) => (
+                  <li key={t} className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center border border-[var(--primary)] text-[11px] font-bold text-[var(--primary)]">
+                      {i + 1}
+                    </span>
+                    <span>
+                      <strong className="font-semibold">{t}.</strong>{" "}
+                      <span className="text-[var(--muted-foreground)]">{d}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+            <section className="dark-section relative overflow-hidden p-5">
+              <p className="eyebrow-dark mb-2">Roles</p>
+              <p className="text-sm leading-6 text-[var(--dark-muted)]">
+                Researchers and institutions submit evidence. Government officials review and approve it. Your account
+                role determines what you see.
+              </p>
+            </section>
+          </aside>
+        </Reveal>
+      </div>
     </Page>
   );
 }

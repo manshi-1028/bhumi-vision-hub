@@ -1,21 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Page, PageHeading } from "../components/site";
+import { Page } from "../components/site";
 import { Loading, ErrorBox } from "../components/states";
 import { BarChart, LineChart, ProgressList } from "../components/charts";
-import { buildDashboardCsv, getDashboard, getYears } from "../lib/api";
+import { RegionMap, type MapLayer } from "../components/region-map";
+import { Reveal, CountUp } from "../components/motion";
+import { TopoLines, SectionRule } from "../components/decor";
+import { buildDashboardCsv, getDashboard, getRegionMetrics, getYears, type DashboardData } from "../lib/api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "National land governance dashboard | BhoomiSetu" },
+      { title: "BhoomiSetu, national land governance intelligence platform" },
       {
         name: "description",
         content:
           "National indicators on land record digitisation, disputes, women's land ownership, climate vulnerability and research outputs.",
       },
-      { property: "og:title", content: "National land governance dashboard | BhoomiSetu" },
+      { property: "og:title", content: "BhoomiSetu, land governance intelligence" },
       {
         property: "og:description",
         content: "Evidence dashboard for research, policy innovation and land governance in India. Sample data.",
@@ -25,99 +28,443 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
-function Kpi({ label, value, note }: { label: string; value: string; note?: string }) {
+/* ------------------------------- hero ------------------------------- */
+
+function Hero({ year, years, onYear, onDownload, canDownload }: {
+  year: number;
+  years: number[];
+  onYear: (y: number) => void;
+  onDownload: () => void;
+  canDownload: boolean;
+}) {
   return (
-    <div className="panel p-4">
-      <p className="text-xs tracking-wide text-[var(--muted-foreground)] uppercase">{label}</p>
-      <p className="mt-2 font-serif text-2xl text-[var(--primary)] tabular-nums">{value}</p>
-      {note ? <p className="mt-1 text-xs text-[var(--muted-foreground)]">{note}</p> : null}
+    <section className="dark-section relative -mx-4 -mt-6 overflow-hidden px-4 pb-12 pt-14 sm:pb-16 sm:pt-20">
+      <TopoLines className="opacity-70" />
+      <div className="bs-grid-overlay-dark absolute inset-0 opacity-50" aria-hidden="true" />
+      <div className="relative mx-auto max-w-6xl">
+        <div className="anim-up flex flex-wrap items-center gap-3">
+          <span className="eyebrow-dark">Government of India, Prototype</span>
+          <span className="inline-flex items-center gap-1.5 border border-[oklch(0.72_0.13_70/45%)] bg-[oklch(0.72_0.13_70/12%)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--accent-bright)]">
+            <span className="anim-pulse-soft inline-block h-1.5 w-1.5 rounded-full bg-[var(--accent-bright)]" aria-hidden="true" />
+            Demo Environment
+          </span>
+        </div>
+        <h1 className="anim-up mt-5 max-w-3xl font-serif text-4xl leading-[1.08] text-[var(--dark-foreground)] sm:text-6xl" style={{ animationDelay: "120ms" }}>
+          Land Governance
+          <br />
+          <span className="text-[var(--accent-bright)]">Intelligence Platform</span>
+        </h1>
+        <p className="anim-up mt-5 max-w-2xl text-base leading-7 text-[var(--dark-muted)] sm:text-lg" style={{ animationDelay: "240ms" }}>
+          Evidence, analytics and policy intelligence for India's evolving land ecosystem.
+          Indicators on digitisation, disputes, ownership equity, climate exposure and research output.
+        </p>
+        <div className="anim-up mt-8 flex flex-wrap items-end gap-4" style={{ animationDelay: "360ms" }}>
+          <label className="block text-sm">
+            <span className="card-label mb-1.5 block text-[var(--dark-muted)]">Reporting year</span>
+            <select
+              value={year}
+              onChange={(e) => onYear(Number(e.target.value))}
+              className="!w-40 dark:!border-[var(--dark-border)] dark:!bg-[var(--dark-raised)] dark:!text-[var(--dark-foreground)]"
+              aria-label="Reporting year"
+            >
+              {years.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </label>
+          <button type="button" className="btn-dark" onClick={onDownload} disabled={!canDownload}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M8 2v8m0 0 3.5-3.5M8 10 4.5 6.5M2.5 13.5h11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Download report (CSV)
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------- KPIs ------------------------------- */
+
+type KpiDef = {
+  key: keyof DashboardData["kpis"];
+  label: string;
+  decimals: number;
+  unit?: string;
+  note: string;
+  icon: React.ReactNode;
+  accent?: boolean;
+};
+
+const KPI_DEFS: KpiDef[] = [
+  {
+    key: "digitized",
+    label: "Records Digitized",
+    decimals: 0,
+    unit: "%",
+    note: "Share of rural survey records",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <rect x="2.5" y="2.5" width="9" height="9" stroke="currentColor" strokeWidth="1.5" />
+        <rect x="8.5" y="8.5" width="9" height="9" stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+    ),
+    accent: true,
+  },
+  {
+    key: "pendingDisputes",
+    label: "Pending Land Disputes",
+    decimals: 0,
+    note: "Cases open across revenue and civil courts",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M10 2.5 17.5 17h-15L10 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        <path d="M10 8v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="10" cy="14.4" r="0.9" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
+    key: "avgResolutionDays",
+    label: "Avg Resolution Time",
+    decimals: 0,
+    unit: "days",
+    note: "Mean days to dispute resolution",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M10 5.5V10l3 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    key: "womenOwned",
+    label: "Women-Owned Land",
+    decimals: 1,
+    unit: "%",
+    note: "Titles recorded in a woman's name",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <circle cx="7" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M13 13.5c1.5-2 3.5-2 5 0M13 13.5c-1.5-2-3.5-2-5 0M15.5 9.5V17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    key: "climateIndex",
+    label: "Climate Vulnerability",
+    decimals: 2,
+    note: "Composite index, 0 low to 1 high",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M3 14c2.5-4 4.5-4 7 0s4.5 4 7 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M3 8.5c2.5-4 4.5-4 7 0s4.5 4 7 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.5" />
+      </svg>
+    ),
+  },
+  {
+    key: "researchOutputs",
+    label: "Research Outputs",
+    decimals: 0,
+    note: "Items indexed in the repository",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M4 3h9l3 3v11H4V3Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        <path d="M7 9h6M7 12.5h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+];
+
+function KpiCard({ def, data, index }: {
+  def: KpiDef;
+  data: DashboardData;
+  index: number;
+}) {
+  const value = data.kpis[def.key];
+  /* Historical context from the same endpoint's time series where available. */
+  const spark: number[] | null = def.key === "digitized" ? data.digitizedSeries.values : null;
+  const prevValue =
+    def.key === "digitized" && spark && spark.length >= 2 ? spark[spark.length - 2] : null;
+  const trend =
+    prevValue !== null && prevValue !== undefined && prevValue !== 0
+      ? value - prevValue
+      : null;
+  const isPrimary = def.accent === true;
+
+  return (
+    <Reveal delay={index * 70} className={isPrimary ? "sm:col-span-2 lg:col-span-1" : ""}>
+      <article
+        className={`panel panel-hover group relative h-full p-5 ${isPrimary ? "border-[var(--primary)] border-l-4" : ""}`}
+        style={{ minHeight: 150 }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <p className="card-label">{def.label}</p>
+          <span
+            className={`shrink-0 transition-colors duration-300 ${isPrimary ? "text-[var(--accent)]" : "text-[var(--primary-bright)] group-hover:text-[var(--primary)]"}`}
+          >
+            {def.icon}
+          </span>
+        </div>
+        <div className="mt-3 flex items-baseline gap-2">
+          <span className={`metric-num ${isPrimary ? "text-5xl" : "text-4xl"} anim-count`}>
+            <CountUp value={value} decimals={def.decimals} />
+          </span>
+          {def.unit ? <span className="text-sm font-semibold text-[var(--muted-foreground)]">{def.unit}</span> : null}
+          {trend !== null && trend !== 0 ? (
+            <span
+              className={`ml-auto inline-flex items-center gap-0.5 text-xs font-semibold ${trend > 0 ? "text-[var(--primary-bright)]" : "text-[var(--accent)]"}`}
+              title={`Change from previous reporting period in the series`}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                {trend > 0 ? <path d="M5 1.5 8.5 8h-7L5 1.5Z" fill="currentColor" /> : <path d="M5 8.5 1.5 2h7L5 8.5Z" fill="currentColor" />}
+              </svg>
+              {Math.abs(trend).toFixed(def.decimals)}
+            </span>
+          ) : null}
+        </div>
+        <p className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">{def.note}</p>
+        {spark && spark.length >= 2 ? (
+          <svg viewBox={`0 0 ${spark.length * 12} 26`} className="mt-3 h-7 w-full" preserveAspectRatio="none" aria-hidden="true">
+            <polyline
+              points={spark.map((v, i) => `${i * 12 + 4},${26 - ((v / Math.max(...spark, 1)) * 22 + 2)}`).join(" ")}
+              fill="none"
+              stroke="var(--primary-bright)"
+              strokeWidth="1.5"
+              className="anim-line"
+              style={{ "--bs-dash-len": 400 } as React.CSSProperties}
+            />
+          </svg>
+        ) : null}
+      </article>
+    </Reveal>
+  );
+}
+
+/* ------------------------------ insights ------------------------------ */
+
+function KeyInsights({ data, metrics }: { data: DashboardData; metrics: Awaited<ReturnType<typeof getRegionMetrics>> }) {
+  type Insight = { title: string; body: string; tone: "primary" | "accent" | "neutral" };
+  const insights: Insight[] = [];
+
+  const dig = data.digitizedSeries.values;
+  if (dig.length >= 2) {
+    const delta = dig[dig.length - 1]! - dig[0]!;
+    insights.push({
+      title: "Digitisation trend",
+      body:
+        delta > 0
+          ? `Records digitisation has risen from ${Math.round(dig[0]!)}% to ${Math.round(dig[dig.length - 1]!)}% across the reporting period shown.`
+          : delta < 0
+            ? `Records digitisation has declined from ${Math.round(dig[0]!)}% to ${Math.round(dig[dig.length - 1]!)}% across the reporting period shown.`
+            : "Records digitisation has remained stable across the reporting period shown.",
+      tone: "primary",
+    });
+  }
+
+  const withDisputes = metrics.filter((m) => m.pendingDisputes !== null);
+  if (withDisputes.length > 0) {
+    const sorted = [...withDisputes].sort((a, b) => (b.pendingDisputes ?? 0) - (a.pendingDisputes ?? 0));
+    const top = sorted.slice(0, 3);
+    insights.push({
+      title: "Dispute pressure",
+      body: `${top.map((m) => m.region).join(", ")} carry the highest pending dispute volumes for ${data.year}.`,
+      tone: "accent",
+    });
+  }
+
+  const withClimate = metrics.filter((m) => m.climateIndex !== null);
+  if (withClimate.length > 0) {
+    const avg = withClimate.reduce((s, m) => s + (m.climateIndex ?? 0), 0) / withClimate.length;
+    const high = withClimate.filter((m) => (m.climateIndex ?? 0) > avg);
+    insights.push({
+      title: "Climate exposure",
+      body: high.length > 0
+        ? `${high.length} of ${withClimate.length} reporting regions sit above the average climate vulnerability index of ${avg.toFixed(2)}.`
+        : `All reporting regions sit at or below the average climate vulnerability index of ${avg.toFixed(2)}.`,
+      tone: "neutral",
+    });
+  }
+
+  if (insights.length === 0) {
+    return (
+      <div className="panel h-full p-6">
+        <h3 className="font-serif text-lg">Key insights</h3>
+        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+          Insights will appear once regional reporting data is available for the selected year.
+        </p>
+      </div>
+    );
+  }
+
+  const toneClass: Record<Insight["tone"], string> = {
+    primary: "text-[var(--primary)] border-[var(--primary)]/30 bg-[var(--primary-soft)]",
+    accent: "text-[var(--accent)] border-[oklch(0.55_0.125_62/30%)] bg-[var(--accent-soft)]",
+    neutral: "text-[var(--foreground)] border-[var(--border)] bg-[var(--surface)]",
+  };
+
+  return (
+    <div className="flex h-full flex-col gap-4">
+      <h3 className="font-serif text-xl">Key insights, {data.year}</h3>
+      <ul className="stagger flex flex-1 flex-col gap-3">
+        {insights.map((i) => (
+          <li key={i.title} className={`border p-4 ${toneClass[i.tone]} transition-transform duration-200 hover:translate-x-1`}>
+            <p className="text-xs font-bold uppercase tracking-[0.1em]">{i.title}</p>
+            <p className="mt-1.5 text-sm leading-6 text-[var(--foreground)] opacity-90">{i.body}</p>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
 
+/* ------------------------------ dashboard ------------------------------ */
+
 function Dashboard() {
   const [year, setYear] = useState(2025);
+  const [layer, setLayer] = useState<MapLayer>("digitized");
   const yearsQuery = useQuery({ queryKey: ["years"], queryFn: getYears });
   const years = yearsQuery.data ?? [];
   const query = useQuery({ queryKey: ["dashboard", year], queryFn: () => getDashboard(year) });
+  const regionQuery = useQuery({ queryKey: ["regionMetrics", year], queryFn: () => getRegionMetrics(year) });
 
   function downloadCsv() {
-    if (!query.data) return;
-    const blob = new Blob([buildDashboardCsv(query.data)], { type: "text/csv;charset=utf-8;" });
+    if (!query.data || !regionQuery.data) return;
+    const blob = new Blob([buildDashboardCsv(query.data, regionQuery.data)], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `bhoomisetu-report-${year}.csv`;
+    a.download = `land-report-${year}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
 
   return (
     <Page>
-      <PageHeading
-        title="National land governance dashboard"
-        description="Indicators on land record digitisation, pending disputes, ownership equity, climate exposure and research output. All values are sample data prepared for SIH26019."
+      <Hero
+        year={year}
+        years={years.length > 0 ? years : [year]}
+        onYear={setYear}
+        onDownload={downloadCsv}
+        canDownload={!!query.data}
       />
 
-      <div className="panel mb-6 flex flex-wrap items-end justify-between gap-4 p-4">
-        <label className="w-full max-w-[200px] text-sm">
-          <span className="mb-1 block text-[var(--muted-foreground)]">Reporting year</span>
-          <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
+      <div className="mt-10 space-y-10">
+        {/* KPI overview */}
+        <section aria-label="National indicators overview">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <p className="eyebrow mb-1">National indicators</p>
+              <h2 className="font-serif text-2xl">Overview, {year}</h2>
+            </div>
+            <span className="hidden text-xs text-[var(--muted-foreground)] sm:block">Aggregated across reporting regions</span>
+          </div>
+          {query.isPending ? <Loading /> : null}
+          {query.isError ? <ErrorBox message={(query.error as Error).message} onRetry={() => query.refetch()} /> : null}
+        {query.data ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {KPI_DEFS.map((def, i) => (
+              <KpiCard key={def.key} def={def} data={query.data!} index={i} />
             ))}
-          </select>
-        </label>
-        <button type="button" className="btn" onClick={downloadCsv} disabled={!query.data}>
-          Download report (CSV)
-        </button>
-      </div>
-
-      {query.isPending ? <Loading /> : null}
-      {query.isError ? <ErrorBox message={(query.error as Error).message} onRetry={() => query.refetch()} /> : null}
-
-      {query.data ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <Kpi label="Records digitized" value={`${query.data.kpis.digitized}%`} note="Share of rural survey records" />
-            <Kpi
-              label="Pending land disputes"
-              value={query.data.kpis.pendingDisputes.toLocaleString("en-IN")}
-              note="Cases open across revenue and civil courts"
-            />
-            <Kpi label="Average resolution time" value={`${query.data.kpis.avgResolutionDays} days`} />
-            <Kpi label="Women-owned land" value={`${query.data.kpis.womenOwned}%`} note="Titles recorded in a woman's name" />
-            <Kpi label="Climate vulnerability index" value={query.data.kpis.climateIndex.toFixed(2)} note="0 low, 1 high" />
-            <Kpi label="Research outputs" value={String(query.data.kpis.researchOutputs)} note="Items indexed in the repository" />
           </div>
+        ) : null}
+        </section>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <LineChart
-              title="Records digitized over time (%)"
-              labels={query.data.digitizedSeries.labels}
-              series={[{ name: "Records digitized", values: query.data.digitizedSeries.values }]}
-              yUnit="%"
-            />
-            <LineChart
-              title="Built-up land over time (%)"
-              labels={query.data.builtUpSeries.labels}
-              series={[{ name: "Built-up land", values: query.data.builtUpSeries.values }]}
-              yUnit="%"
-            />
-          </div>
+        <SectionRule />
 
-          <BarChart title="Pending disputes by state, top 10 (thousands of cases)" data={query.data.disputesByState} />
-          <BarChart title="Research outputs by topic" data={query.data.researchByTopic} />
+        {/* GIS intelligence + insights */}
+        <section className="grid grid-cols-1 gap-8 lg:grid-cols-[1.6fr_1fr]" aria-label="Regional intelligence">
+          <Reveal>
+            <div className="mb-5">
+              <p className="eyebrow mb-1">Regional intelligence</p>
+              <h2 className="font-serif text-2xl">India land metrics grid</h2>
+              <p className="mt-2 max-w-xl text-sm text-[var(--muted-foreground)]">
+                Parcel view of the {regionQuery.data?.length ?? 0} reporting regions. Switch layers, hover a region for a
+                quick value, click for the full metric panel.
+              </p>
+            </div>
+            {regionQuery.isPending ? <Loading /> : null}
+            {regionQuery.isError ? <ErrorBox message={(regionQuery.error as Error).message} onRetry={() => regionQuery.refetch()} /> : null}
+            {regionQuery.data ? <RegionMap metrics={regionQuery.data} layer={layer} onLayerChange={setLayer} /> : null}
+          </Reveal>
+          <Reveal delay={140}>
+            {query.data && regionQuery.data ? (
+              <KeyInsights data={query.data} metrics={regionQuery.data} />
+            ) : (
+              <div className="panel h-full p-6">
+                <h3 className="font-serif text-lg">Key insights</h3>
+                <p className="mt-2 text-sm text-[var(--muted-foreground)]">Loading dashboard context...</p>
+              </div>
+            )}
+          </Reveal>
+        </section>
 
-          <ProgressList title="Project progress by component" data={query.data.progress} />
+        <SectionRule />
 
-          <section className="panel flex min-h-[220px] items-center justify-center p-6 text-center">
-            <p className="text-sm text-[var(--muted-foreground)]">National map, integration pending</p>
+        {/* Trend charts */}
+        {query.data ? (
+          <section className="space-y-8" aria-label="Trend charts">
+            <div>
+              <p className="eyebrow mb-1">Longitudinal view</p>
+              <h2 className="font-serif text-2xl">Trend analysis</h2>
+            </div>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <Reveal>
+                <LineChart
+                  title="Records digitized over time (%)"
+                  labels={query.data.digitizedSeries.labels}
+                  series={[{ name: "Records digitized", values: query.data.digitizedSeries.values }]}
+                  yUnit="%"
+                />
+              </Reveal>
+              <Reveal delay={120}>
+                <LineChart
+                  title="Built-up land over time (%)"
+                  labels={query.data.builtUpSeries.labels}
+                  series={[{ name: "Built-up land", values: query.data.builtUpSeries.values }]}
+                  yUnit="%"
+                />
+              </Reveal>
+            </div>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <Reveal delay={60}>
+                <BarChart title="Pending disputes by state, top 10 (thousands of cases)" data={query.data.disputesByState} />
+              </Reveal>
+              <Reveal delay={180}>
+                <BarChart title="Research outputs by topic" data={query.data.researchByTopic} />
+              </Reveal>
+            </div>
           </section>
-        </div>
-      ) : null}
+        ) : null}
+
+        {/* Projects + report note */}
+        {query.data ? (
+          <section className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1.4fr]" aria-label="Programme progress">
+            <Reveal>
+              <ProgressList title="Project progress by component" data={query.data.progress} />
+            </Reveal>
+            <Reveal delay={120}>
+              <div className="dark-section relative overflow-hidden p-6 sm:p-8">
+                <TopoLines opacity={0.5} />
+                <div className="relative">
+                  <p className="eyebrow-dark mb-2">Reporting</p>
+                  <h3 className="font-serif text-2xl text-[var(--dark-foreground)]">Download the current briefing</h3>
+                  <p className="mt-2 max-w-md text-sm leading-6 text-[var(--dark-muted)]">
+                    Export the visible KPIs and chart series for {query.data.year} as a CSV briefing pack for offline
+                    analysis or annexing to a policy note.
+                  </p>
+                  <button type="button" className="btn-dark mt-5" onClick={downloadCsv}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M8 2v8m0 0 3.5-3.5M8 10 4.5 6.5M2.5 13.5h11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    Download report (CSV)
+                  </button>
+                </div>
+              </div>
+            </Reveal>
+          </section>
+        ) : null}
+      </div>
     </Page>
   );
 }

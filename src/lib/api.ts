@@ -45,6 +45,42 @@ export async function getYears(): Promise<number[]> {
 
 /* -------------------------------- dashboard ------------------------------- */
 
+export interface RegionMetrics {
+  region: string;
+  digitized: number | null;
+  pendingDisputes: number | null;
+  avgResolutionDays: number | null;
+  womenOwned: number | null;
+  climateIndex: number | null;
+  builtUp: number | null;
+}
+
+export async function getRegionMetrics(year: number): Promise<RegionMetrics[]> {
+  const { data, error } = await supabase
+    .from("land_metrics")
+    .select(`
+      records_digitized_pct, pending_disputes, avg_resolution_days,
+      women_owned_pct, climate_vuln_index, built_up_pct,
+      regions (name)
+    `)
+    .eq("year", year)
+    .order("year", { ascending: false });
+
+  if (error) throw new Error("Failed to load regional metrics.");
+
+  return (data ?? [])
+    .map((m) => ({
+      region: (m.regions as unknown as { name: string } | null)?.name ?? "Unknown",
+      digitized: m.records_digitized_pct ?? null,
+      pendingDisputes: m.pending_disputes ?? null,
+      avgResolutionDays: m.avg_resolution_days ?? null,
+      womenOwned: m.women_owned_pct ?? null,
+      climateIndex: m.climate_vuln_index ?? null,
+      builtUp: m.built_up_pct ?? null,
+    }))
+    .sort((a, b) => a.region.localeCompare(b.region));
+}
+
 export interface DashboardData {
   year: number;
   kpis: {
@@ -59,7 +95,7 @@ export interface DashboardData {
   builtUpSeries: { labels: string[]; values: number[] };
   disputesByState: { label: string; value: number }[];
   researchByTopic: { label: string; value: number }[];
-  progress: { label: string; value: number }[];
+  progress: { label: string; value: number; status: string | null }[];
 }
 
 export async function getDashboard(year: number): Promise<DashboardData> {
@@ -119,7 +155,10 @@ export async function getDashboard(year: number): Promise<DashboardData> {
 
   // Disputes by state (top 10)
   const disputesByState = metrics
-    .map((m) => ({ label: (m.regions as { name: string }).name, value: Math.round((m.pending_disputes ?? 0) / 1000) }))
+    .map((m) => ({
+      label: (m.regions as unknown as { name: string } | null)?.name ?? "Unknown",
+      value: Math.round((m.pending_disputes ?? 0) / 1000),
+    }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 10);
 
@@ -140,10 +179,14 @@ export async function getDashboard(year: number): Promise<DashboardData> {
   // Project progress
   const { data: projects, error: pErr } = await supabase
     .from("projects")
-    .select("title, progress_pct")
+    .select("title, status, progress_pct")
     .order("title");
   if (pErr) throw new Error("Failed to load project progress.");
-  const progress = (projects ?? []).map((p) => ({ label: p.title, value: p.progress_pct ?? 0 }));
+  const progress = (projects ?? []).map((p) => ({
+    label: p.title,
+    value: p.progress_pct ?? 0,
+    status: p.status ?? null,
+  }));
 
   return {
     year,
@@ -230,7 +273,7 @@ export async function searchLibrary(query: LibraryQuery): Promise<LibraryResult>
     title: e.title,
     type: e.type ?? "",
     topic: e.topic ?? "",
-    state: (e.regions as { name: string } | null)?.name ?? "",
+    state: (e.regions as unknown as { name: string } | null)?.name ?? "",
     year: e.year ?? 0,
     summary: e.summary ?? "",
     tags: e.tags ?? [],
@@ -259,7 +302,7 @@ export async function getResearchItem(id: string): Promise<LibraryItem> {
     title: data.title,
     type: data.type ?? "",
     topic: data.topic ?? "",
-    state: (data.regions as { name: string } | null)?.name ?? "",
+    state: (data.regions as unknown as { name: string } | null)?.name ?? "",
     year: data.year ?? 0,
     summary: data.summary ?? "",
     tags: data.tags ?? [],
@@ -310,7 +353,7 @@ export async function getRecommended(id: string): Promise<LibraryItem[]> {
     title: e.title,
     type: e.type ?? "",
     topic: e.topic ?? "",
-    state: (e.regions as { name: string } | null)?.name ?? "",
+    state: (e.regions as unknown as { name: string } | null)?.name ?? "",
     year: e.year ?? 0,
     summary: e.summary ?? "",
     tags: e.tags ?? [],
@@ -540,23 +583,40 @@ export async function runSimulation(
 
 /* ----------------------------------- csv ---------------------------------- */
 
-export function buildDashboardCsv(data: DashboardData): string {
-  const lines: string[] = [];
-  const push = (...cells: (string | number)[]) =>
-    lines.push(cells.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","));
-  push("BhoomiSetu sample data export", `Year ${data.year}`);
-  push("");
-  push("Section", "Label", "Value");
-  push("KPI", "Records digitized (%)", data.kpis.digitized);
-  push("KPI", "Pending land disputes", data.kpis.pendingDisputes);
-  push("KPI", "Average dispute resolution (days)", data.kpis.avgResolutionDays);
-  push("KPI", "Women-owned land (%)", data.kpis.womenOwned);
-  push("KPI", "Climate vulnerability index", data.kpis.climateIndex);
-  push("KPI", "Research outputs", data.kpis.researchOutputs);
-  data.digitizedSeries.labels.forEach((l, i) => push("Records digitized over time (%)", l, data.digitizedSeries.values[i] ?? ""));
-  data.builtUpSeries.labels.forEach((l, i) => push("Built-up land over time (%)", l, data.builtUpSeries.values[i] ?? ""));
-  data.disputesByState.forEach((d) => push("Pending disputes by state (thousands)", d.label, d.value));
-  data.researchByTopic.forEach((d) => push("Research outputs by topic", d.label, d.value));
-  data.progress.forEach((d) => push("Project progress by component (%)", d.label, d.value));
+/**
+ * Per-region CSV export for the selected reporting year.
+ * Columns: state, year, records_digitized_pct, pending_disputes,
+ * avg_resolution_days, women_owned_pct, climate_vuln_index, built_up_pct.
+ * One row per reporting region (12 states) straight from Supabase land_metrics.
+ */
+export function buildDashboardCsv(data: DashboardData, regions: RegionMetrics[]): string {
+  const esc = (v: string | number | null) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const header = [
+    "state",
+    "year",
+    "records_digitized_pct",
+    "pending_disputes",
+    "avg_resolution_days",
+    "women_owned_pct",
+    "climate_vuln_index",
+    "built_up_pct",
+  ];
+  const lines = [header.join(",")];
+  for (const r of regions) {
+    lines.push(
+      [
+        r.region,
+        data.year,
+        r.digitized,
+        r.pendingDisputes,
+        r.avgResolutionDays,
+        r.womenOwned,
+        r.climateIndex,
+        r.builtUp,
+      ]
+        .map(esc)
+        .join(","),
+    );
+  }
   return lines.join("\n");
 }
