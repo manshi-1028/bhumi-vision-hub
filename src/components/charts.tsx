@@ -23,11 +23,13 @@ export function LineChart({
   series,
   yUnit = "",
   title,
+  description,
 }: {
   labels: string[];
   series: LineSeries[];
   yUnit?: string;
   title: string;
+  description?: string;
 }) {
   const w = Math.max(560, labels.length * 58);
   const h = 280;
@@ -44,8 +46,11 @@ export function LineChart({
 
   return (
     <figure className="panel panel-hover p-5">
-      <figcaption className="mb-4 flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold text-[var(--ink)]">{title}</span>
+      <figcaption className="mb-4 flex items-start justify-between gap-3">
+        <span className="text-sm font-semibold text-[var(--ink)]">
+          {title}
+          {description ? <span className="mt-0.5 block text-xs font-normal leading-5 text-[var(--muted-foreground)]">{description}</span> : null}
+        </span>
         {series.length > 1 ? (
           <ul className="flex flex-wrap gap-4 text-xs text-[var(--muted-foreground)]">
             {series.map((s) => (
@@ -145,10 +150,12 @@ export function BarChart({
   data,
   title,
   unit = "",
+  description,
 }: {
   data: { label: string; value: number }[];
   title: string;
   unit?: string;
+  description?: string;
 }) {
   const barW = 56;
   const w = Math.max(560, data.length * barW + 90);
@@ -162,8 +169,11 @@ export function BarChart({
 
   return (
     <figure className="panel panel-hover p-5">
-      <figcaption className="mb-4 flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold text-[var(--ink)]">{title}</span>
+      <figcaption className="mb-4 flex items-start justify-between gap-3">
+        <span className="text-sm font-semibold text-[var(--ink)]">
+          {title}
+          {description ? <span className="mt-0.5 block text-xs font-normal leading-5 text-[var(--muted-foreground)]">{description}</span> : null}
+        </span>
         {unit ? <span className="text-xs text-[var(--muted-foreground)]">{unit}</span> : null}
       </figcaption>
       <div className="overflow-x-auto">

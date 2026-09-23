@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { LockIcon, TriangleAlertIcon } from "./ui/icons";
 
 export function Loading({ label = "Loading..." }: { label?: string }) {
   return (
@@ -75,11 +76,7 @@ export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () =
   return (
     <div className="panel p-6" style={{ borderColor: "var(--accent)" }} role="alert">
       <p className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--accent)" }}>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M8 1.5 15 14H1L8 1.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-          <path d="M8 6v3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <circle cx="8" cy="11.6" r="0.8" fill="currentColor" />
-        </svg>
+        <TriangleAlertIcon className="h-4 w-4" />
         Something went wrong
       </p>
       <p className="mt-1.5 text-sm text-[var(--muted-foreground)]">{message}</p>
@@ -97,11 +94,7 @@ export function AccessRestricted({ requiredRole }: { requiredRole?: string }) {
   return (
     <div className="panel mx-auto mt-12 max-w-lg p-8 text-center" role="alert">
       <span className="mx-auto mb-4 flex h-11 w-11 items-center justify-center border border-[oklch(0.55_0.125_62/35%)] bg-[var(--accent-soft)] text-[var(--accent)]">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <rect x="4" y="9" width="12" height="8" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M7 9V6.5a3 3 0 0 1 6 0V9" stroke="currentColor" strokeWidth="1.5" />
-          <circle cx="10" cy="13" r="1.1" fill="currentColor" />
-        </svg>
+        <LockIcon className="h-5 w-5" />
       </span>
       <p className="eyebrow">Access restricted</p>
       <h2 className="mt-2 font-serif text-2xl">This workspace is limited</h2>

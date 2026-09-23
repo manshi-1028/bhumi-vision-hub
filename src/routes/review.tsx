@@ -122,7 +122,7 @@ function Review() {
                       <span className="block truncate font-medium">{item.title}</span>
                       <span className="block text-xs text-[var(--muted-foreground)]">
                         {item.topic ? `${item.topic} · ` : ""}
-                        <time>{new Date(item.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</time>
+                        <time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</time>
                       </span>
                     </span>
                     <span className="tabular-nums text-xs text-[var(--muted-foreground)]">Ref {item.id.slice(0, 8)}</span>
@@ -151,7 +151,7 @@ function SubmissionCard({ item, index, decide }: {
               <span className="chip">Pending</span>
               <span className="tabular-nums">Ref {item.id.slice(0, 8)}</span>
               <span aria-hidden="true">·</span>
-              <time>{new Date(item.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</time>
+              <time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</time>
             </div>
             <h3 className="mt-2 font-serif text-lg leading-snug">{item.title}</h3>
             {item.topic ? <p className="mt-1 text-sm font-semibold uppercase tracking-[0.08em] text-[var(--primary-bright)]">{item.topic}</p> : null}

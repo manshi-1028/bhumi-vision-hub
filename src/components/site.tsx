@@ -1,24 +1,13 @@
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
+import { Menu, X } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { AccessRestricted, Loading } from "./states";
 import { BrandMark } from "./brand";
 
-/** Inline SVG, 1.5px strokes, currentColor. */
+/** Lucide menu/close toggle for the mobile nav. */
 export function MenuIcon({ open }: { open: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      {open ? (
-        <path d="M6 6l12 12M18 6L6 18" />
-      ) : (
-        <>
-          <path d="M4 7h16" />
-          <path d="M4 12h16" />
-          <path d="M4 17h16" />
-        </>
-      )}
-    </svg>
-  );
+  return open ? <X className="h-5 w-5" strokeWidth={1.75} aria-hidden /> : <Menu className="h-5 w-5" strokeWidth={1.75} aria-hidden />;
 }
 
 const NAV = [

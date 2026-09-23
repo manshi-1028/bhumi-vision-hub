@@ -3,6 +3,7 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useState } from "react";
 import { Page } from "../components/site";
 import { EmptyBox, ErrorBox, LoadingRows } from "../components/states";
+import { ArrowLeftIcon, ArrowRightIcon, SearchIcon, SourceGlyph, typeGlyph, XIcon } from "../components/ui/icons";
 import { TopoLines, SectionRule } from "../components/decor";
 import { getStates, getTopics, getTypes, searchLibrary } from "../lib/api";
 
@@ -23,14 +24,6 @@ export const Route = createFileRoute("/library/")({
 
 const YEARS_FILTER = Array.from({ length: 10 }, (_, i) => 2017 + i);
 
-const TYPE_ICONS: Record<string, string> = {
-  "Policy brief": "M4 3h9l3 3v11H4V3Zm3 6h6M7 12.5h6",
-  Dataset: "M3 3h5v5H3V3Zm0 7h5v5H3v-5Zm7-7h5v5h-5V3Zm0 7h5v5h-5v-5Z",
-  "Journal paper": "M5 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm1 4h8M6 9h8M6 13h5",
-  "Field study": "M2 16 8 8l3 3 5-7M2 16h14",
-  "Government report": "M3 3h14v11l-3 3H3V3Zm3 5h8M6 11h5",
-};
-
 function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
     <span className="inline-flex items-center gap-1.5 border border-[var(--border)] bg-[var(--primary-soft)] py-1 pl-2.5 pr-1.5 text-xs font-medium text-[var(--primary)]">
@@ -41,20 +34,17 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
         aria-label={`Remove filter: ${label}`}
         className="flex h-4 w-4 items-center justify-center opacity-70 transition-opacity hover:opacity-100"
       >
-        <svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
-          <path d="m1.5 1.5 6 6m0-6-6 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-        </svg>
+        <XIcon className="h-2.5 w-2.5" />
       </button>
     </span>
   );
 }
 
 function TypeGlyph({ type }: { type: string }) {
+  const Glyph = typeGlyph(type);
   return (
     <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-[var(--border)] bg-[var(--primary-soft)] text-[var(--primary)]">
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path d={TYPE_ICONS[type] ?? TYPE_ICONS["Journal paper"]} stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      <Glyph className="h-[18px] w-[18px]" strokeWidth={1.5} aria-hidden />
     </span>
   );
 }
@@ -111,13 +101,7 @@ function Library() {
         <label className="block" htmlFor="library-search">
           <span className="card-label mb-1.5 block">Search the repository</span>
           <div className="relative">
-            <svg
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]"
-              width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"
-            >
-              <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5" />
-              <path d="m10.5 10.5 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
             <input
               id="library-search"
               type="text"
@@ -139,9 +123,7 @@ function Library() {
                 aria-label="Clear search"
                 className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center border border-transparent text-[var(--muted-foreground)] transition-colors hover:border-[var(--border)] hover:bg-[var(--primary-soft)] hover:text-[var(--foreground)]"
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                  <path d="m3 3 6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
+                <XIcon className="h-3 w-3" />
               </button>
             ) : null}
           </div>
@@ -259,13 +241,14 @@ function Library() {
                           <span className="tabular-nums">Ref {item.id.slice(0, 8)}</span>
                         </div>
                         <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--muted-foreground)]">{item.summary}</p>
+                        {item.source ? (
+                          <p className="mt-2.5 flex items-center gap-1.5 border-t border-[var(--border)] pt-2.5 text-xs text-[var(--muted-foreground)]">
+                            <SourceGlyph className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
+                            <span className="truncate" title={item.source}>{item.source}</span>
+                          </p>
+                        ) : null}
                       </div>
-                      <svg
-                        className="mt-1 hidden shrink-0 text-[var(--primary)] opacity-0 transition-all duration-200 group-hover:translate-x-1 group-hover:opacity-100 sm:block"
-                        width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"
-                      >
-                        <path d="M3 9h11m0 0-4-4m4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+                      <ArrowRightIcon className="mt-1 hidden h-[18px] w-[18px] shrink-0 text-[var(--primary)] opacity-0 transition-all duration-200 group-hover:translate-x-1 group-hover:opacity-100 sm:block" />
                     </div>
                   </Link>
                 </li>
@@ -273,19 +256,21 @@ function Library() {
             </ul>
 
             <nav className="mt-8 flex items-center justify-between gap-3" aria-label="Pagination">
-              <button type="button" className="btn-outline" disabled={query.data.page <= 1} onClick={() => setPage((p) => p - 1)}>
-                ← Previous
+              <button type="button" className="btn-outline inline-flex items-center gap-1.5" disabled={query.data.page <= 1} onClick={() => setPage((p) => p - 1)}>
+                <ArrowLeftIcon className="h-3.5 w-3.5" aria-hidden />
+                Previous
               </button>
               <span className="text-sm text-[var(--muted-foreground)]">
                 Page {query.data.page} of {query.data.totalPages}
               </span>
               <button
                 type="button"
-                className="btn-outline"
+                className="btn-outline inline-flex items-center gap-1.5"
                 disabled={query.data.page >= query.data.totalPages}
                 onClick={() => setPage((p) => p + 1)}
               >
-                Next →
+                Next
+                <ArrowRightIcon className="h-3.5 w-3.5" aria-hidden />
               </button>
             </nav>
           </>

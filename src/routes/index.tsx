@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Page } from "../components/site";
 import { Loading, ErrorBox } from "../components/states";
 import { BarChart, LineChart, ProgressList } from "../components/charts";
@@ -321,33 +321,53 @@ function KeyInsights({ data, metrics }: { data: DashboardData; metrics: Awaited<
 /* ------------------------------ dashboard ------------------------------ */
 
 function Dashboard() {
-  const [year, setYear] = useState(2025);
+  /* Start unset and adopt the newest year the live dataset actually contains,
+     so the first paint always lands on real data (no hardcoded year). */
+  const [year, setYear] = useState<number | null>(null);
   const [layer, setLayer] = useState<MapLayer>("digitized");
   const yearsQuery = useQuery({ queryKey: ["years"], queryFn: getYears });
   const years = yearsQuery.data ?? [];
-  const query = useQuery({ queryKey: ["dashboard", year], queryFn: () => getDashboard(year) });
-  const regionQuery = useQuery({ queryKey: ["regionMetrics", year], queryFn: () => getRegionMetrics(year) });
+
+  useEffect(() => {
+    if (year === null && yearsQuery.data && yearsQuery.data.length > 0) {
+      setYear(yearsQuery.data[0]!);
+    }
+  }, [year, yearsQuery.data]);
+
+  const activeYear = year ?? yearsQuery.data?.[0] ?? null;
+  const query = useQuery({
+    queryKey: ["dashboard", activeYear],
+    queryFn: () => getDashboard(activeYear!),
+    enabled: activeYear !== null,
+  });
+  const regionQuery = useQuery({
+    queryKey: ["regionMetrics", activeYear],
+    queryFn: () => getRegionMetrics(activeYear!),
+    enabled: activeYear !== null,
+  });
 
   function downloadCsv() {
-    if (!query.data || !regionQuery.data) return;
+    if (!query.data || !regionQuery.data || activeYear === null) return;
     const blob = new Blob([buildDashboardCsv(query.data, regionQuery.data)], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `land-report-${year}.csv`;
+    a.download = `land-report-${activeYear}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
 
   return (
     <Page>
-      <Hero
-        year={year}
-        years={years.length > 0 ? years : [year]}
-        onYear={setYear}
-        onDownload={downloadCsv}
-        canDownload={!!query.data}
-      />
+      {activeYear !== null ? (
+        <Hero
+          year={activeYear}
+          years={years.length > 0 ? years : [activeYear]}
+          onYear={setYear}
+          onDownload={downloadCsv}
+          canDownload={!!query.data}
+        />
+      ) : null}
 
       <div className="mt-10 space-y-10">
         {/* KPI overview */}
@@ -376,11 +396,23 @@ function Dashboard() {
         <section className="grid grid-cols-1 gap-8 lg:grid-cols-[1.6fr_1fr]" aria-label="Regional intelligence">
           <Reveal>
             <div className="mb-5">
-              <p className="eyebrow mb-1">Regional intelligence</p>
-              <h2 className="font-serif text-2xl">India land metrics grid</h2>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="eyebrow mb-1">Regional intelligence</p>
+                  <h2 className="font-serif text-2xl">Land intelligence map</h2>
+                </div>
+                {/* Context chips — every value derived from live state */}
+                <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em]">
+                  <span className="chip">{regionQuery.data?.length ?? 12} regions</span>
+                  <span className="chip">Land metrics dataset</span>
+                  <span className="chip !border-[var(--primary)] !text-[var(--primary)]">
+                    Layer: {layer === "digitized" ? "Digitized" : layer === "disputes" ? "Disputes" : "Climate"}
+                  </span>
+                </div>
+              </div>
               <p className="mt-2 max-w-xl text-sm text-[var(--muted-foreground)]">
-                Parcel view of the {regionQuery.data?.length ?? 0} reporting regions. Switch layers, hover a region for a
-                quick value, click for the full metric panel.
+                Explore regional land indicators across India. Hover a region for a quick value, click to analyse its
+                full metric panel; switch layers to transform the view.
               </p>
             </div>
             {regionQuery.isPending ? <Loading /> : null}
@@ -388,7 +420,14 @@ function Dashboard() {
             {regionQuery.data ? <RegionMap metrics={regionQuery.data} layer={layer} onLayerChange={setLayer} /> : null}
           </Reveal>
           <Reveal delay={140}>
-            {query.data && regionQuery.data ? (
+            {query.isError || regionQuery.isError ? (
+              <div className="panel h-full p-6">
+                <h3 className="font-serif text-lg">Key insights</h3>
+                <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+                  Insights are unavailable because dashboard data could not be loaded. See the error details above.
+                </p>
+              </div>
+            ) : query.data && regionQuery.data ? (
               <KeyInsights data={query.data} metrics={regionQuery.data} />
             ) : (
               <div className="panel h-full p-6">
@@ -412,6 +451,7 @@ function Dashboard() {
               <Reveal>
                 <LineChart
                   title="Records digitized over time (%)"
+                  description="National share of rural survey records digitised, by reporting year."
                   labels={query.data.digitizedSeries.labels}
                   series={[{ name: "Records digitized", values: query.data.digitizedSeries.values }]}
                   yUnit="%"
@@ -420,6 +460,7 @@ function Dashboard() {
               <Reveal delay={120}>
                 <LineChart
                   title="Built-up land over time (%)"
+                  description="National share of land under built-up use, by reporting year."
                   labels={query.data.builtUpSeries.labels}
                   series={[{ name: "Built-up land", values: query.data.builtUpSeries.values }]}
                   yUnit="%"
@@ -428,10 +469,18 @@ function Dashboard() {
             </div>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <Reveal delay={60}>
-                <BarChart title="Pending disputes by state, top 10 (thousands of cases)" data={query.data.disputesByState} />
+                <BarChart
+                  title="Pending disputes by state, top 10 (thousands of cases)"
+                  description="Regions with the highest open dispute volumes for the selected year."
+                  data={query.data.disputesByState}
+                />
               </Reveal>
               <Reveal delay={180}>
-                <BarChart title="Research outputs by topic" data={query.data.researchByTopic} />
+                <BarChart
+                  title="Research outputs by topic"
+                  description="Records indexed in the BhoomiSetu evidence repository."
+                  data={query.data.researchByTopic}
+                />
               </Reveal>
             </div>
           </section>

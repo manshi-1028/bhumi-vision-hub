@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowLeftIcon, ArrowRightIcon } from "../components/ui/icons";
 import { useQuery } from "@tanstack/react-query";
 import { Page } from "../components/site";
 import { EmptyBox, ErrorBox, Loading, LoadingRows } from "../components/states";
@@ -37,9 +38,7 @@ function Detail() {
   return (
     <Page>
       <Link to="/library" className="anim-reveal inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary)] hover:underline">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M13 8H2m0 0 4-4M2 8l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <ArrowLeftIcon className="h-4 w-4" aria-hidden />
         Back to repository
       </Link>
 
@@ -101,6 +100,7 @@ function Detail() {
                       ["Topic", item.data.topic],
                       ["Region", item.data.state],
                       ["Year", String(item.data.year)],
+                      ["Source", item.data.source],
                       ["Reference", item.data.id.slice(0, 8)],
                     ]
                       .filter(([, v]) => v)
@@ -163,9 +163,7 @@ function Detail() {
                         aria-label={`Open related record: ${r.title}`}
                       >
                         <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center border border-[var(--border)] bg-[var(--primary-soft)] text-[var(--primary)] transition-colors group-hover:border-[oklch(0.335_0.055_160/30%)] group-hover:bg-[var(--primary-soft-strong)]" aria-hidden="true">
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                            <path d="M3 7h7m0 0-2.8-2.8M10 7 7.2 9.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
+                          <ArrowRightIcon className="h-3.5 w-3.5" />
                         </span>
                         <div className="min-w-0">
                           <div className="flex flex-wrap gap-2 text-xs text-[var(--muted-foreground)]">

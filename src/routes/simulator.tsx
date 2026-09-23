@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { Play } from "lucide-react";
 import { Page, Protected } from "../components/site";
 import { ErrorBox, Loading } from "../components/states";
 import { LineChart } from "../components/charts";
@@ -46,6 +47,12 @@ function Simulator() {
   });
 
   const selectedLever = levers?.find((l) => l.id === leverId);
+  const submittedLever = levers?.find((l) => l.id === submitted?.leverId);
+  /* True when the user has moved a control after running: the displayed
+     projection no longer reflects the current control values. */
+  const stale =
+    !!submitted &&
+    (submitted.state !== state || submitted.leverId !== leverId || submitted.intensity !== intensity);
 
   return (
     <Page>
@@ -112,11 +119,10 @@ function Simulator() {
             <button
               type="button"
               className="btn mt-6 w-full"
+              disabled={query.isFetching}
               onClick={() => setSubmitted({ state, leverId, intensity })}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M12.6 3.4l-2.1 2.1M5.5 10.5l-2.1 2.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
+              <Play className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
               Simulate
             </button>
 
@@ -152,6 +158,17 @@ function Simulator() {
                   <header className="border-b border-[var(--border)] bg-[var(--primary-soft)] px-6 py-4">
                     <p className="card-label">Projected effects</p>
                     <h2 className="font-serif text-xl">{submitted?.state}</h2>
+                    {/* Self-describing results: the exact parameters behind this projection. */}
+                    <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                      Lever: <strong className="font-semibold">{submittedLever?.name ?? submitted?.leverId}</strong>
+                      <span aria-hidden="true"> · </span>Intensity: <strong className="font-semibold tabular-nums">{submitted?.intensity}</strong>/100
+                    </p>
+                    {stale ? (
+                      <p className="anim-up mt-2 inline-flex items-center gap-2 border border-[oklch(0.55_0.125_62/35%)] bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--accent)]" role="status">
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+                        Controls changed — run Simulate again to update this projection
+                      </p>
+                    ) : null}
                   </header>
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[560px] border-collapse text-sm">
@@ -186,6 +203,21 @@ function Simulator() {
                   </div>
                 </section>
               </Reveal>
+
+              {/* Interpretation — derived strictly from the computed changes above. */}
+              {(() => {
+                const biggest = query.data.rows.reduce((a, b) =>
+                  Math.abs(b.projected - b.baseline) > Math.abs(a.projected - a.baseline) ? b : a,
+                );
+                const delta = biggest.projected - biggest.baseline;
+                return (
+                  <p className="anim-up text-sm text-[var(--muted-foreground)]" role="note">
+                    <strong className="font-semibold text-[var(--foreground)]">Reading this projection:</strong> the
+                    largest modelled change is in {biggest.indicator.toLowerCase()} ({delta >= 0 ? "+" : ""}
+                    {delta.toFixed(2)} {biggest.unit}) at the selected intensity.
+                  </p>
+                );
+              })()}
 
               <Reveal delay={120}>
                 <LineChart

@@ -4,6 +4,7 @@ import { Page } from "../components/site";
 import { useAuth } from "../lib/auth";
 import { BrandMark } from "../components/brand";
 import { TopoLines } from "../components/decor";
+import { Globe } from "../components/ui/globe";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -63,7 +64,7 @@ function Login() {
             <p className="anim-up mt-4 max-w-sm text-sm leading-6 text-[var(--dark-muted)]" style={{ animationDelay: "200ms" }}>
               One account for the national dashboard, research repository, policy simulator and evidence submission.
             </p>
-            <ul className="anim-up mt-auto space-y-2.5 pt-8 text-sm text-[var(--dark-muted)]" style={{ animationDelay: "300ms" }}>
+            <ul className="anim-up space-y-2.5 pt-8 text-sm text-[var(--dark-muted)]" style={{ animationDelay: "300ms" }}>
               {[
                 "Researchers and institutions submit evidence",
                 "Government officials review submissions",
@@ -75,6 +76,11 @@ function Login() {
                 </li>
               ))}
             </ul>
+            {/* Decorative globe: sits below the value list, behind nothing, interferes with nothing. */}
+            <div className="anim-up mt-2 h-[210px] w-[210px] self-center sm:h-[230px] sm:w-[230px]" style={{ animationDelay: "420ms" }}>
+              <Globe />
+            </div>
+            <p className="sr-only">Decorative globe illustration.</p>
           </div>
         </section>
 
