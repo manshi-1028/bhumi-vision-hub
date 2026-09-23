@@ -1,7 +1,7 @@
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "../lib/auth";
-import { Loading } from "./states";
+import { AccessRestricted, Loading } from "./states";
 import { BrandMark } from "./brand";
 
 /** Inline SVG, 1.5px strokes, currentColor. */
@@ -194,7 +194,11 @@ export function PageHeading({
   );
 }
 
-/** Client side role guard. Redirects unauthenticated users to /login. */
+/**
+ * Client side role guard. Redirects unauthenticated users to /login;
+ * signed-in users without the required role see a clear restricted state
+ * instead of silently bouncing. Content stays fully blocked either way.
+ */
 export function Protected({ roles, children }: { roles?: readonly string[]; children: ReactNode }) {
   const { user, ready } = useAuth();
   const router = useRouter();
@@ -202,9 +206,11 @@ export function Protected({ roles, children }: { roles?: readonly string[]; chil
   useEffect(() => {
     if (!ready) return;
     if (!user) router.navigate({ to: "/login" });
-    else if (roles && !roles.includes(user.role)) router.navigate({ to: "/" });
-  }, [ready, user, roles, router]);
+  }, [ready, user, router]);
 
-  if (!ready || !user || (roles && !roles.includes(user.role))) return <Loading />;
+  if (!ready || !user) return <Loading />;
+  if (roles && !roles.includes(user.role)) {
+    return <AccessRestricted requiredRole={roles.join(" / ")} />;
+  }
   return <>{children}</>;
 }

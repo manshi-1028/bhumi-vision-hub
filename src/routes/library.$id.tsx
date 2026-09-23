@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Page } from "../components/site";
-import { EmptyBox, ErrorBox, Loading } from "../components/states";
+import { EmptyBox, ErrorBox, Loading, LoadingRows } from "../components/states";
 import { Reveal } from "../components/motion";
 import { getRecommended, getResearchItem } from "../lib/api";
 
@@ -106,8 +106,8 @@ function Detail() {
                       .filter(([, v]) => v)
                       .map(([k, v]) => (
                         <div key={k} className="flex justify-between gap-4 border-b border-[var(--border)] pb-2 last:border-0 last:pb-0">
-                          <dt className="text-[var(--muted-foreground)]">{k}</dt>
-                          <dd className="text-right font-semibold text-[var(--foreground)]">{v}</dd>
+                          <dt className="shrink-0 text-[var(--muted-foreground)]">{k}</dt>
+                          <dd className="truncate text-right font-semibold text-[var(--foreground)]" title={v}>{v}</dd>
                         </div>
                       ))}
                   </dl>
@@ -131,13 +131,23 @@ function Detail() {
             </aside>
           </div>
 
-          {/* Related evidence */}
-          <Reveal as="section" className="pt-4">
-            <div className="mb-5 flex items-center gap-3">
-              <h2 className="font-serif text-2xl">Related evidence</h2>
-              <span className="h-px flex-1 bg-[var(--border)]" aria-hidden="true" />
-            </div>
-            {related.isPending ? <Loading label="Finding related records..." /> : null}
+      {/* Related evidence — clearly secondary to the main document */}
+      <Reveal as="section" className="mt-12 scroll-mt-20 border-t-2 border-[var(--border)] pt-8">
+        <div className="mb-5 flex flex-wrap items-center gap-3">
+          <p className="eyebrow">Recommended</p>
+          <h2 className="font-serif text-xl text-[var(--muted-foreground)]">by topic and tag match</h2>
+          <span className="h-px flex-1 bg-[var(--border)]" aria-hidden="true" />
+          {related.data && related.data.length > 0 ? (
+            <span className="text-xs tabular-nums text-[var(--muted-foreground)]">
+              {related.data.length} related {related.data.length === 1 ? "record" : "records"}
+            </span>
+          ) : null}
+        </div>
+        <p className="mb-5 max-w-2xl text-sm text-[var(--muted-foreground)]">
+          Related records from the repository, matched on the topic and region of this document. They are listed for
+          further reading and are not part of this record.
+        </p>
+            {related.isPending ? <LoadingRows label="Finding related records..." rows={2} /> : null}
             {related.isError ? <ErrorBox message={(related.error as Error).message} onRetry={() => related.refetch()} /> : null}
             {related.data ? (
               related.data.length === 0 ? (
@@ -146,15 +156,27 @@ function Detail() {
                 <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   {related.data.map((r, i) => (
                     <li key={r.id} style={{ animation: "bs-fade-up 560ms ease both", animationDelay: `${i * 70}ms` }}>
-                      <Link to="/library/$id" params={{ id: r.id }} className="panel panel-hover group block h-full p-5">
-                        <div className="flex flex-wrap gap-2 text-xs text-[var(--muted-foreground)]">
-                          <span className="chip">{r.type}</span>
-                          <span className="tabular-nums">{r.year}</span>
+                      <Link
+                        to="/library/$id"
+                        params={{ id: r.id }}
+                        className="panel panel-hover group flex h-full items-start gap-3.5 p-5"
+                        aria-label={`Open related record: ${r.title}`}
+                      >
+                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center border border-[var(--border)] bg-[var(--primary-soft)] text-[var(--primary)] transition-colors group-hover:border-[oklch(0.335_0.055_160/30%)] group-hover:bg-[var(--primary-soft-strong)]" aria-hidden="true">
+                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M3 7h7m0 0-2.8-2.8M10 7 7.2 9.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap gap-2 text-xs text-[var(--muted-foreground)]">
+                            <span className="chip">{r.type}</span>
+                            <span className="tabular-nums">{r.year}</span>
+                          </div>
+                          <h3 className="mt-2 font-serif text-base leading-snug text-[var(--primary)] group-hover:text-[var(--primary-bright)]">{r.title}</h3>
+                          <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                            {r.topic}{r.state ? ` · ${r.state}` : ""}
+                          </p>
                         </div>
-                        <h3 className="mt-2 font-serif text-base leading-snug text-[var(--primary)] group-hover:text-[var(--primary-bright)]">{r.title}</h3>
-                        <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                          {r.topic}{r.state ? ` · ${r.state}` : ""}
-                        </p>
                       </Link>
                     </li>
                   ))}

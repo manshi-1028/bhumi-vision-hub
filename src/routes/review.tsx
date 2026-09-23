@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Page, PageHeading, Protected } from "../components/site";
-import { EmptyBox, ErrorBox, Loading } from "../components/states";
+import { EmptyBox, ErrorBox, LoadingRows } from "../components/states";
 import { Reveal } from "../components/motion";
 import { decideSubmission, getSubmissions, type Submission } from "../lib/api";
 
@@ -43,9 +43,8 @@ function Review() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["submissions"] });
     },
-    onError: (error: Error) => {
-      alert(error.message);
-    },
+    // Error state is rendered inline by the page (no alert dialogs).
+    onError: () => {},
   });
 
   const pending = query.data?.filter((s) => s.status === "pending") ?? [];
@@ -59,8 +58,29 @@ function Review() {
         description="Approved items appear in the public repository. Rejected items are marked as rejected. Only officials can access this queue."
       />
 
-      {query.isPending ? <Loading /> : null}
+      {query.isPending ? <LoadingRows label="Loading the review queue..." rows={3} /> : null}
       {query.isError ? <ErrorBox message={(query.error as Error).message} onRetry={() => query.refetch()} /> : null}
+
+      {decide.isError ? (
+        <div className="anim-up mb-8 border p-4" style={{ borderColor: "var(--accent)" }} role="alert">
+          <p className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--accent)" }}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M8 1.5 15 14H1L8 1.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+              <path d="M8 6v3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <circle cx="8" cy="11.6" r="0.8" fill="currentColor" />
+            </svg>
+            Decision could not be recorded
+          </p>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">{(decide.error as Error).message}</p>
+          <button
+            type="button"
+            className="btn-outline mt-3 !py-1.5 !text-xs"
+            onClick={() => decide.reset()}
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
 
       {query.data ? (
         <div className="space-y-10">
@@ -74,7 +94,11 @@ function Review() {
             </div>
 
             {pending.length === 0 ? (
-              <EmptyBox message="No submissions are waiting for review." />
+              <EmptyBox
+                title="Queue is clear"
+                message="No submissions are waiting for review."
+                hint="New submissions from researchers and institutions appear here as soon as they arrive."
+              />
             ) : (
               <ul className="space-y-4">
                 {pending.map((item, i) => (
@@ -94,7 +118,13 @@ function Review() {
                 {decided.map((item) => (
                   <li key={item.id} className="panel flex flex-wrap items-center gap-3 p-4 text-sm">
                     <StatusBadge status={item.status} />
-                    <span className="min-w-0 flex-1 truncate font-medium">{item.title}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{item.title}</span>
+                      <span className="block text-xs text-[var(--muted-foreground)]">
+                        {item.topic ? `${item.topic} · ` : ""}
+                        <time>{new Date(item.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</time>
+                      </span>
+                    </span>
                     <span className="tabular-nums text-xs text-[var(--muted-foreground)]">Ref {item.id.slice(0, 8)}</span>
                   </li>
                 ))}

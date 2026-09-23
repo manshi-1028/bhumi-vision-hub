@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useState } from "react";
 import { Page } from "../components/site";
-import { EmptyBox, ErrorBox, Loading } from "../components/states";
+import { EmptyBox, ErrorBox, LoadingRows } from "../components/states";
 import { TopoLines, SectionRule } from "../components/decor";
 import { getStates, getTopics, getTypes, searchLibrary } from "../lib/api";
 
@@ -30,6 +30,24 @@ const TYPE_ICONS: Record<string, string> = {
   "Field study": "M2 16 8 8l3 3 5-7M2 16h14",
   "Government report": "M3 3h14v11l-3 3H3V3Zm3 5h8M6 11h5",
 };
+
+function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 border border-[var(--border)] bg-[var(--primary-soft)] py-1 pl-2.5 pr-1.5 text-xs font-medium text-[var(--primary)]">
+      {label}
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove filter: ${label}`}
+        className="flex h-4 w-4 items-center justify-center opacity-70 transition-opacity hover:opacity-100"
+      >
+        <svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+          <path d="m1.5 1.5 6 6m0-6-6 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
+      </button>
+    </span>
+  );
+}
 
 function TypeGlyph({ type }: { type: string }) {
   return (
@@ -90,7 +108,7 @@ function Library() {
 
       {/* Search + filters */}
       <section className="panel -mt-5 relative z-10 p-5 shadow-[var(--shadow-raised)]" aria-label="Search and filters">
-        <label className="block">
+        <label className="block" htmlFor="library-search">
           <span className="card-label mb-1.5 block">Search the repository</span>
           <div className="relative">
             <svg
@@ -101,13 +119,35 @@ function Library() {
               <path d="m10.5 10.5 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
             <input
-              type="search"
+              id="library-search"
+              type="text"
               value={q}
               onChange={(e) => { setQ(e.target.value); setPage(1); }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && q) {
+                  setQ("");
+                  setPage(1);
+                }
+              }}
               placeholder="Search titles, summaries and evidence records"
-              className="!py-2.5 !pl-9 !text-base"
+              className="!py-2.5 !pl-9 !pr-10 !text-base"
             />
+            {q ? (
+              <button
+                type="button"
+                onClick={() => { setQ(""); setPage(1); }}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center border border-transparent text-[var(--muted-foreground)] transition-colors hover:border-[var(--border)] hover:bg-[var(--primary-soft)] hover:text-[var(--foreground)]"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <path d="m3 3 6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            ) : null}
           </div>
+          <span className="mt-1.5 block text-xs text-[var(--muted-foreground)]">
+            Matches words in record titles and summaries. Press Escape to clear.
+          </span>
         </label>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="block text-sm">
@@ -140,35 +180,61 @@ function Library() {
           </label>
         </div>
         {hasFilters ? (
-          <button type="button" className="btn-outline mt-4 !py-1.5 !text-xs" onClick={clearFilters}>
-            Clear all filters
-          </button>
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-4">
+            <span className="card-label">Active filters</span>
+            {q ? <FilterChip label={`Search: ${q}`} onRemove={() => { setQ(""); setPage(1); }} /> : null}
+            {type ? <FilterChip label={`Type: ${type}`} onRemove={() => { setType(""); setPage(1); }} /> : null}
+            {topic ? <FilterChip label={`Topic: ${topic}`} onRemove={() => { setTopic(""); setPage(1); }} /> : null}
+            {state ? <FilterChip label={`State: ${state}`} onRemove={() => { setState(""); setPage(1); }} /> : null}
+            {year ? <FilterChip label={`Year: ${year}`} onRemove={() => { setYear(""); setPage(1); }} /> : null}
+            <button
+              type="button"
+              className="ml-auto text-xs font-semibold text-[var(--accent)] underline-offset-2 transition-colors hover:text-[var(--accent-bright)] hover:underline"
+              onClick={clearFilters}
+            >
+              Clear all filters
+            </button>
+          </div>
         ) : null}
       </section>
 
       <SectionRule className="my-8" />
 
       {/* Results */}
-      {query.isPending ? <Loading label="Searching the repository..." /> : null}
+      {query.isPending ? <LoadingRows label="Searching the repository..." rows={3} /> : null}
       {query.isError ? <ErrorBox message={(query.error as Error).message} onRetry={() => query.refetch()} /> : null}
 
       {query.data ? (
         query.data.total === 0 ? (
           <EmptyBox
-            message="No results match your filters. Try broadening the search or clearing a filter."
+            title="No matching records"
+            message="No evidence in the repository matches your current search and filters."
+            hint="Try a shorter search term, or remove one or more filters from the list above."
             action={
               <button type="button" className="btn-outline" onClick={clearFilters}>
-                Clear filters
+                Reset search &amp; filters
               </button>
             }
           />
         ) : (
           <>
-            <p className="mb-4 text-sm text-[var(--muted-foreground)]">
-              <strong className="font-semibold text-[var(--foreground)]">{query.data.total.toLocaleString("en-IN")}</strong>
-              {" "}records found, page {query.data.page} of {query.data.totalPages}
-            </p>
-            <ul className="space-y-3">
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2 border-b border-[var(--border)] pb-3">
+              <p className="text-sm text-[var(--muted-foreground)]" aria-live="polite">
+                <strong className="font-serif text-xl font-semibold tabular-nums text-[var(--primary)]">
+                  {query.data.total.toLocaleString("en-IN")}
+                </strong>
+                <span className="ml-1.5">records found</span>
+                {query.isFetching && !query.isPending ? (
+                  <span className="ml-2 text-xs opacity-75">Updating...</span>
+                ) : null}
+              </p>
+              <p className="text-xs tabular-nums text-[var(--muted-foreground)]">
+                Page {query.data.page} of {query.data.totalPages}
+              </p>
+            </div>
+            <ul
+              className={`space-y-3 transition-opacity duration-200 ${query.isFetching ? "opacity-60" : "opacity-100"}`}
+            >
               {query.data.items.map((item, i) => (
                 <li key={item.id} style={{ animation: "bs-fade-up 560ms cubic-bezier(0.22,1,0.36,1) both", animationDelay: `${i * 60}ms` }}>
                   <Link

@@ -71,60 +71,105 @@ function SubmitPage() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.6fr_1fr]">
         <Reveal>
-          <form className="panel space-y-6 p-6 sm:p-8" onSubmit={onSubmit} aria-label="Research submission form">
-            <label className="block">
-              <span className="card-label mb-1.5 block">Title</span>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                placeholder="Full title of the research output"
-                className="!text-base"
-              />
-            </label>
+          <form className="panel space-y-7 p-6 sm:p-8" onSubmit={onSubmit} aria-label="Research submission form" aria-busy={busy}>
+            <p className="border-b border-[var(--border)] pb-4 text-xs text-[var(--muted-foreground)]">
+              Fields marked <span className="font-bold text-[var(--accent)]" aria-hidden="true">*</span>
+              <span className="sr-only">(required)</span> are required.
+            </p>
 
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+            {/* Step 1 — Title */}
+            <section aria-label="Record title">
+              <p className="card-label mb-3 flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center border border-[var(--border)] text-[9px] font-bold text-[var(--muted-foreground)]" aria-hidden="true">1</span>
+                Record details
+              </p>
               <label className="block">
-                <span className="card-label mb-1.5 block">Type</span>
-                <select value={type} onChange={(e) => setType(e.target.value)}>
-                  {(types ?? []).map((t) => <option key={t}>{t}</option>)}
-                </select>
-              </label>
-              <label className="block">
-                <span className="card-label mb-1.5 block">Topic</span>
-                <select value={topic} onChange={(e) => setTopic(e.target.value)}>
-                  {(topics ?? []).map((t) => <option key={t}>{t}</option>)}
-                </select>
-              </label>
-              <label className="block">
-                <span className="card-label mb-1.5 block">State</span>
-                <select value={state} onChange={(e) => setState(e.target.value)}>
-                  {(states ?? []).map((s) => <option key={s}>{s}</option>)}
-                </select>
-              </label>
-            </div>
-
-            <label className="block">
-              <span className="card-label mb-1.5 flex items-center justify-between">
-                <span>Summary</span>
-                <span className="text-[10px] normal-case tracking-normal text-[var(--muted-foreground)]">
-                  {summary.trim().length} characters
+                <span className="mb-1.5 flex items-baseline gap-1 text-sm font-semibold text-[var(--foreground)]">
+                  Title
+                  <span className="font-bold text-[var(--accent)]" aria-hidden="true">*</span>
                 </span>
-              </span>
-              <textarea
-                rows={7}
-                value={summary}
-                onChange={(e) => setSummary(e.target.value)}
-                required
-                placeholder="Abstract or key findings. Describe the method, the region and period covered, and the headline result."
-                className="!leading-7"
-              />
-            </label>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  aria-required="true"
+                  placeholder="Full title of the research output"
+                  className="!text-base"
+                />
+              </label>
+            </section>
+
+            {/* Step 2 — Classification */}
+            <section aria-label="Classification">
+              <p className="card-label mb-3 flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center border border-[var(--border)] text-[9px] font-bold text-[var(--muted-foreground)]" aria-hidden="true">2</span>
+                Classification
+              </p>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+                <label className="block">
+                  <span className="card-label mb-1.5 block">Type</span>
+                  <select value={type} onChange={(e) => setType(e.target.value)}>
+                    {(types ?? []).map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="card-label mb-1.5 block">Topic</span>
+                  <select value={topic} onChange={(e) => setTopic(e.target.value)}>
+                    {(topics ?? []).map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="card-label mb-1.5 block">State</span>
+                  <select value={state} onChange={(e) => setState(e.target.value)}>
+                    {(states ?? []).map((s) => <option key={s}>{s}</option>)}
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            {/* Step 3 — Summary */}
+            <section aria-label="Summary">
+              <p className="card-label mb-3 flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center border border-[var(--border)] text-[9px] font-bold text-[var(--muted-foreground)]" aria-hidden="true">3</span>
+                Description
+              </p>
+              <label className="block">
+                <span className="mb-1.5 flex items-baseline justify-between gap-2">
+                  <span className="flex items-baseline gap-1 text-sm font-semibold text-[var(--foreground)]">
+                    Summary
+                    <span className="font-bold text-[var(--accent)]" aria-hidden="true">*</span>
+                  </span>
+                  <span className="text-[10px] normal-case tracking-normal text-[var(--muted-foreground)]">
+                    {summary.trim().length} characters
+                  </span>
+                </span>
+                <textarea
+                  rows={7}
+                  value={summary}
+                  onChange={(e) => setSummary(e.target.value)}
+                  required
+                  aria-required="true"
+                  placeholder="Abstract or key findings. Describe the method, the region and period covered, and the headline result."
+                  className="!leading-7"
+                />
+              </label>
+            </section>
 
             {error ? (
-              <p className="anim-up border p-3.5 text-sm" style={{ borderColor: "var(--accent)", color: "var(--accent)" }} role="alert">
-                {error}
-              </p>
+              <div className="anim-up border p-4" style={{ borderColor: "var(--accent)" }} role="alert">
+                <p className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--accent)" }}>
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M8 1.5 15 14H1L8 1.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                    <path d="M8 6v3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    <circle cx="8" cy="11.6" r="0.8" fill="currentColor" />
+                  </svg>
+                  Submission failed
+                </p>
+                <p className="mt-1 text-sm text-[var(--muted-foreground)]">{error}</p>
+                <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">
+                  Check the highlighted fields and your connection, then submit again.
+                </p>
+              </div>
             ) : null}
             {done ? (
               <div className="anim-up flex items-start gap-3 border border-[var(--primary)] bg-[var(--primary-soft)] p-4 text-sm" role="status">
@@ -132,25 +177,32 @@ function SubmitPage() {
                   <circle cx="9" cy="9" r="7.25" stroke="currentColor" strokeWidth="1.5" />
                   <path d="m5.75 9.25 2.25 2.25 4.25-4.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                <span className="text-[var(--foreground)]">{done}</span>
+                <span className="text-[var(--foreground)]">
+                  <strong className="font-semibold">Submission received.</strong> {done.replace("Submission received. ", "")}
+                </span>
               </div>
             ) : null}
 
-            <button type="submit" className="btn w-full sm:w-auto" disabled={busy}>
-              {busy ? (
-                <>
-                  <span className="spin-ring !h-4 !w-4 !border" aria-hidden="true" />
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  Submit for review
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path d="M2 8h11m0 0-4-4m4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </>
-              )}
-            </button>
+            <div className="flex flex-wrap items-center gap-3 border-t border-[var(--border)] pt-5">
+              <button type="submit" className="btn w-full sm:w-auto" disabled={busy} aria-busy={busy}>
+                {busy ? (
+                  <>
+                    <span className="spin-ring !h-4 !w-4 !border" aria-hidden="true" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    Submit for review
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M2 8h11m0 0-4-4m4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </>
+                )}
+              </button>
+              <p className="text-xs text-[var(--muted-foreground)]">
+                {busy ? "Sending your record to the review queue..." : "Your record is reviewed by an official before publication."}
+              </p>
+            </div>
           </form>
         </Reveal>
 

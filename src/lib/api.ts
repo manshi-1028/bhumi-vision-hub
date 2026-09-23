@@ -209,6 +209,8 @@ export async function getDashboard(year: number): Promise<DashboardData> {
 /* --------------------------------- library -------------------------------- */
 
 export interface LibraryItem {
+  /** Normalized to a string at this boundary: the live evidence table uses a
+   *  bigint id column (not uuid), and UI helpers call String methods on it. */
   id: string;
   title: string;
   type: string;
@@ -243,33 +245,54 @@ export async function searchLibrary(query: LibraryQuery): Promise<LibraryResult>
   const page = query.page ?? 1;
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
+  const q = query.q?.trim() ?? "";
 
-  const selectRelation = query.state ? "regions!inner (name)" : "regions (name)";
+  // Builds the repository query with the requested text-match strategy plus all
+  // active filters. A factory (not a shared builder) because the full-text
+  // attempt is re-issued with the case-insensitive fallback when it misses.
+  const buildQuery = (match: "fts" | "ilike") => {
+    const selectRelation = query.state ? "regions!inner (name)" : "regions (name)";
+    let db = supabase
+      .from("evidence")
+      .select(
+        `
+        id, title, summary, type, topic, tags, year, source,
+        region_id, ${selectRelation}
+      `,
+        { count: "exact" },
+      );
 
-  let db = supabase
-    .from("evidence")
-    .select(
-      `
-      id, title, summary, type, topic, tags, year, source,
-      region_id, ${selectRelation}
-    `, { count: "exact" },
-    );
+    if (q) {
+      if (match === "fts") {
+        // Postgres full-text search on the precomputed fts column (websearch syntax).
+        db = db.textSearch("fts", q, { type: "websearch" });
+      } else {
+        // Fallback: case-insensitive match against title and summary. Values are
+        // double-quoted per PostgREST or= syntax; embedded quotes are doubled.
+        const pattern = `%${q.replace(/"/g, '""')}%`;
+        db = db.or(`title.ilike."${pattern}",summary.ilike."${pattern}"`);
+      }
+    }
+    if (query.type) db = db.eq("type", query.type);
+    if (query.topic) db = db.eq("topic", query.topic);
+    if (query.year) db = db.eq("year", Number(query.year));
+    if (query.state) db = db.eq("regions.name", query.state);
 
-  if (query.q && query.q.trim()) {
-    db = db.or(`title.ilike.%${query.q.trim()}%,summary.ilike.%${query.q.trim()}%`);
-  }
-  if (query.type) db = db.eq("type", query.type);
-  if (query.topic) db = db.eq("topic", query.topic);
-  if (query.year) db = db.eq("year", Number(query.year));
-  if (query.state) db = db.eq("regions.name", query.state);
+    return db.order("created_at", { ascending: false }).range(from, to);
+  };
 
-  db = db.order("created_at", { ascending: false }).range(from, to);
-
-  const { data, error, count } = await db;
+  let { data, error, count } = await buildQuery("fts");
   if (error) throw new Error("Failed to search the repository.");
 
+  // Full-text matching can miss short or partial words; retry once with a plain
+  // case-insensitive title/summary match before reporting zero results.
+  if ((count ?? 0) === 0 && q) {
+    ({ data, error, count } = await buildQuery("ilike"));
+    if (error) throw new Error("Failed to search the repository.");
+  }
+
   const items: LibraryItem[] = (data ?? []).map((e) => ({
-    id: e.id,
+    id: String(e.id),
     title: e.title,
     type: e.type ?? "",
     topic: e.topic ?? "",
@@ -298,7 +321,7 @@ export async function getResearchItem(id: string): Promise<LibraryItem> {
   if (!data) throw new Error(`No research item found with reference ${id}.`);
 
   return {
-    id: data.id,
+    id: String(data.id),
     title: data.title,
     type: data.type ?? "",
     topic: data.topic ?? "",
@@ -311,45 +334,37 @@ export async function getResearchItem(id: string): Promise<LibraryItem> {
 }
 
 export async function getRecommended(id: string): Promise<LibraryItem[]> {
-  // Fetch the current item to get topic and region
+  // Fetch the current item to derive the topic and tags used for matching.
   const { data: current } = await supabase
     .from("evidence")
-    .select("topic, region_id")
+    .select("topic, tags")
     .eq("id", id)
     .maybeSingle();
 
   if (!current) return [];
 
-  // Build filter: match on topic, or on region if present
-  const orParts: string[] = [];
-  if (current.topic) {
-    orParts.push(`topic.eq.${current.topic.replace(/,/g, "\,")}`);
-  }
-  if (current.region_id) {
-    orParts.push(`region_id.eq.${current.region_id}`);
-  }
-  const orFilter = orParts.length > 0 ? orParts.join(",") : undefined;
+  const currentTags: string[] = current.tags ?? [];
+  const sharedTagCount = (tags: unknown): number => {
+    const set = new Set(currentTags);
+    let n = 0;
+    for (const t of (tags as string[] | null) ?? []) {
+      if (set.has(t)) n++;
+    }
+    return n;
+  };
 
-  let dbQuery = supabase
-    .from("evidence")
-    .select(`
-      id, title, summary, type, topic, tags, year, source,
-      region_id, regions (name)
-    `)
-    .neq("id", id);
-
-  if (orFilter) {
-    dbQuery = dbQuery.or(orFilter);
-  }
-
-  const { data, error } = await dbQuery
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  if (error) return [];
-
-  return (data ?? []).map((e) => ({
-    id: e.id,
+  const toItem = (e: {
+    id: unknown;
+    title: string;
+    type: string | null;
+    topic: string | null;
+    regions: unknown;
+    year: number | null;
+    summary: string | null;
+    tags: string[] | null;
+    source: string | null;
+  }): LibraryItem => ({
+    id: String(e.id),
     title: e.title,
     type: e.type ?? "",
     topic: e.topic ?? "",
@@ -358,12 +373,56 @@ export async function getRecommended(id: string): Promise<LibraryItem[]> {
     summary: e.summary ?? "",
     tags: e.tags ?? [],
     source: e.source ?? "",
-  }));
+  });
+
+  const RECOMMEND_SELECT = `
+      id, title, summary, type, topic, tags, year, source,
+      region_id, regions (name)
+    `;
+
+  // Candidates: same topic OR overlapping tags, always excluding this item.
+  // Two simple queries (the repository is small) avoid fragile or() strings.
+  const candidates = new Map<string, { item: LibraryItem; sharedTags: number }>();
+
+  if (current.topic) {
+    const { data } = await supabase
+      .from("evidence")
+      .select(RECOMMEND_SELECT)
+      .eq("topic", current.topic)
+      .neq("id", id)
+      .order("year", { ascending: false })
+      .limit(50);
+    for (const e of data ?? []) {
+      candidates.set(String(e.id), { item: toItem(e), sharedTags: sharedTagCount(e.tags) });
+    }
+  }
+
+  if (currentTags.length > 0) {
+    const { data } = await supabase
+      .from("evidence")
+      .select(RECOMMEND_SELECT)
+      .overlaps("tags", currentTags)
+      .neq("id", id)
+      .limit(50);
+    for (const e of data ?? []) {
+      const key = String(e.id);
+      if (!candidates.has(key)) {
+        candidates.set(key, { item: toItem(e), sharedTags: sharedTagCount(e.tags) });
+      }
+    }
+  }
+
+  // Order: most shared tags first, then newest year. At most 4 items.
+  return [...candidates.values()]
+    .sort((a, b) => b.sharedTags - a.sharedTags || b.item.year - a.item.year)
+    .slice(0, 4)
+    .map((c) => c.item);
 }
 
 /* ------------------------------- submissions ------------------------------ */
 
 export interface Submission {
+  /** Normalized to a string at this boundary (see LibraryItem.id). */
   id: string;
   title: string;
   topic: string;
@@ -400,7 +459,7 @@ export async function submitResearch(input: {
   if (error) throw new Error("Failed to submit your research. Please try again.");
 
   return {
-    id: data.id,
+    id: String(data.id),
     title: data.title,
     topic: data.topic ?? "",
     body: data.body ?? "",
@@ -419,7 +478,7 @@ export async function getSubmissions(): Promise<Submission[]> {
   if (error) throw new Error("Failed to load submissions.");
 
   return (data ?? []).map((s) => ({
-    id: s.id,
+    id: String(s.id),
     title: s.title,
     topic: s.topic ?? "",
     body: s.body ?? "",
