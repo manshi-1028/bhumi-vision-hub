@@ -132,6 +132,26 @@ export function LineChart({
                     <circle cx={x(i)} cy={y(v)} r="3" fill="var(--surface)" stroke={color} strokeWidth="1.75" />
                   </g>
                 ))}
+                {/* End-value label: states the latest figure without requiring a hover. */}
+                {s.values.length >= 2 ? (
+                  <text
+                    x={x(s.values.length - 1)}
+                    y={y(s.values[s.values.length - 1]!) < pad.t + 26
+                      ? y(s.values[s.values.length - 1]!) + 18
+                      : y(s.values[s.values.length - 1]!) - 10}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fontWeight="600"
+                    fill={color}
+                    stroke="var(--surface)"
+                    strokeWidth="3"
+                    paintOrder="stroke"
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {s.values[s.values.length - 1]!.toLocaleString("en-IN", { maximumFractionDigits: 1 })}
+                    {yUnit}
+                  </text>
+                ) : null}
               </g>
             );
           })}
@@ -151,11 +171,14 @@ export function BarChart({
   data,
   title,
   unit = "",
+  /** Short suffix appended to each bar's value label (e.g. "k" for thousands). */
+  valueUnit = "",
   description,
 }: {
   data: { label: string; value: number }[];
   title: string;
   unit?: string;
+  valueUnit?: string;
   description?: string;
 }) {
   const barW = 56;
@@ -202,6 +225,7 @@ export function BarChart({
                 <rect x={cx} y={ty} width={bw} height={pad.t + plotH - ty} rx="2" fill={`url(#${gid}-bar)`} />
                 <text x={cx + bw / 2} y={ty - 6} textAnchor="middle" fontSize="10.5" fontWeight="600" fill="var(--primary)" style={{ fontVariantNumeric: "tabular-nums" }}>
                   {d.value.toLocaleString("en-IN", { maximumFractionDigits: 1 })}
+                  {valueUnit}
                 </text>
                 <text
                   x={cx + bw / 2}

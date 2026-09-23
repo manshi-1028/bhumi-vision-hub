@@ -189,6 +189,7 @@ function Library() {
       {query.data ? (
         query.data.total === 0 ? (
           <EmptyBox
+            icon={<SearchIcon className="h-5 w-5" />}
             title="No matching records"
             message="No evidence in the repository matches your current search and filters."
             hint="Try a shorter search term, or remove one or more filters from the list above."
@@ -205,7 +206,7 @@ function Library() {
                 <strong className="font-serif text-xl font-semibold tabular-nums text-[var(--primary)]">
                   {query.data.total.toLocaleString("en-IN")}
                 </strong>
-                <span className="ml-1.5">records found</span>
+                <span className="ml-1.5">{query.data.total === 1 ? "record found" : "records found"}</span>
                 {query.isFetching && !query.isPending ? (
                   <span className="ml-2 text-xs opacity-75">Updating...</span>
                 ) : null}

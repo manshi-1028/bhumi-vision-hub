@@ -12,19 +12,32 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../lib/auth";
+import { SearchIcon } from "../components/ui/icons";
 
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-5xl font-semibold text-[var(--primary)]">404</h1>
-        <h2 className="mt-4 text-xl font-semibold">Page not found</h2>
-        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-          The page you are looking for does not exist or has been moved.
+      <div className="panel max-w-lg p-8 text-center sm:p-10">
+        <span
+          className="mx-auto mb-5 flex h-12 w-12 items-center justify-center border border-[var(--border)] bg-[var(--primary-soft)] text-[var(--primary)]"
+          aria-hidden="true"
+        >
+          <SearchIcon className="h-5 w-5" />
+        </span>
+        <p className="eyebrow">Error 404</p>
+        <h1 className="mt-2 font-serif text-3xl">Page not found</h1>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[var(--muted-foreground)]">
+          This page does not exist. It may have been moved, or the address may be incomplete.
         </p>
-        <div className="mt-6">
+        <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-[var(--muted-foreground)]">
+          Every dashboard, research and simulator view is reachable from the main navigation.
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
           <Link to="/" className="btn">
             Go to dashboard
+          </Link>
+          <Link to="/library" className="btn-outline">
+            Browse the research library
           </Link>
         </div>
       </div>

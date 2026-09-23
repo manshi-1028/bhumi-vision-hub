@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Page } from "../components/site";
@@ -7,6 +7,7 @@ import { BarChart, LineChart, ProgressList, niceMax } from "../components/charts
 import { RegionMap, type MapLayer } from "../components/region-map";
 import { Reveal, CountUp } from "../components/motion";
 import { TopoLines, SectionRule } from "../components/decor";
+import { ButtonWithIcon } from "../components/ui/button-with-icon";
 import { buildDashboardCsv, getDashboard, getRegionMetrics, getStates, getTrendForecast, getYears, FORECAST_METRICS, type DashboardData, type ForecastMetric } from "../lib/api";
 
 export const Route = createFileRoute("/")({
@@ -37,6 +38,8 @@ function Hero({ year, years, onYear, onDownload, canDownload }: {
   onDownload: () => void;
   canDownload: boolean;
 }) {
+  const navigate = useNavigate();
+
   return (
     <section className="dark-section relative -mx-4 -mt-6 overflow-hidden px-4 pb-12 pt-14 sm:pb-16 sm:pt-20">
       <TopoLines className="opacity-70" />
@@ -72,6 +75,9 @@ function Hero({ year, years, onYear, onDownload, canDownload }: {
               ))}
             </select>
           </label>
+          <ButtonWithIcon variant="dark" onClick={() => navigate({ to: "/library" })}>
+            Explore the research library
+          </ButtonWithIcon>
           <button type="button" className="btn-dark" onClick={onDownload} disabled={!canDownload}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M8 2v8m0 0 3.5-3.5M8 10 4.5 6.5M2.5 13.5h11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -693,8 +699,9 @@ function Dashboard() {
               <Reveal delay={60}>
                 <BarChart
                   title="Pending disputes by state, top 10 (thousands of cases)"
-                  description="Regions with the highest open dispute volumes for the selected year."
+                  description="Regions with the highest open dispute volumes for the selected year. Bar labels are in thousands."
                   data={query.data.disputesByState}
+                  valueUnit="k"
                 />
               </Reveal>
               <Reveal delay={180}>
@@ -724,12 +731,9 @@ function Dashboard() {
                     Export the visible KPIs and chart series for {query.data.year} as a CSV briefing pack for offline
                     analysis or annexing to a policy note.
                   </p>
-                  <button type="button" className="btn-dark mt-5" onClick={downloadCsv}>
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M8 2v8m0 0 3.5-3.5M8 10 4.5 6.5M2.5 13.5h11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    Download report (CSV)
-                  </button>
+                  <ButtonWithIcon variant="dark" className="mt-5" onClick={downloadCsv} disabled={!query.data}>
+                    Download the briefing pack (CSV)
+                  </ButtonWithIcon>
                 </div>
               </div>
             </Reveal>

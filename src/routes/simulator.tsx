@@ -220,6 +220,7 @@ function Simulator() {
                     <LineChart
                       key={c.key}
                       title={c.title}
+                      description="Baseline and projected values over the 5-year horizon."
                       yUnit={c.unit}
                       labels={query.data!.computation.horizonYears}
                       series={[

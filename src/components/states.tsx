@@ -49,19 +49,31 @@ export function EmptyBox({
   message,
   hint,
   action,
+  icon,
 }: {
   title?: string;
   message: string;
   hint?: string;
   action?: ReactNode;
+  /** Optional 20x20 stroke icon rendered in the default placeholder chip. */
+  icon?: ReactNode;
 }) {
   return (
     <div className="panel px-6 py-10 text-center sm:px-8">
-      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" className="mx-auto mb-3 text-[var(--muted-foreground)] opacity-50" aria-hidden="true">
-        <rect x="4" y="4" width="12" height="12" stroke="currentColor" strokeWidth="1.5" />
-        <rect x="16" y="16" width="14" height="14" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M16 10h10M10 16v10" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
-      </svg>
+      {icon ? (
+        <span
+          className="mx-auto mb-3 flex h-10 w-10 items-center justify-center border border-[var(--border)] bg-[var(--primary-soft)] text-[var(--muted-foreground)] opacity-80"
+          aria-hidden="true"
+        >
+          {icon}
+        </span>
+      ) : (
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" className="mx-auto mb-3 text-[var(--muted-foreground)] opacity-50" aria-hidden="true">
+          <rect x="4" y="4" width="12" height="12" stroke="currentColor" strokeWidth="1.5" />
+          <rect x="16" y="16" width="14" height="14" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M16 10h10M10 16v10" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+        </svg>
+      )}
       {title ? <p className="font-serif text-lg text-[var(--ink)]">{title}</p> : null}
       <p className="mx-auto mt-1 max-w-md text-sm text-[var(--muted-foreground)]">{message}</p>
       {hint ? (
