@@ -661,6 +661,98 @@ export async function runSimulation(
   };
 }
 
+/* ------------------------------ trend forecast ----------------------------- */
+
+/** Metrics available in the forecasts table and in the land_metrics history. */
+export type ForecastMetric =
+  | "records_digitized_pct"
+  | "pending_disputes"
+  | "avg_resolution_days"
+  | "women_owned_pct"
+  | "climate_vuln_index"
+  | "built_up_pct";
+
+export interface ForecastMetricInfo {
+  key: ForecastMetric;
+  label: string;
+  unit: string;
+  decimals: number;
+}
+
+/** Display metadata for the forecastable metrics, in dashboard KPI order. */
+export const FORECAST_METRICS: ForecastMetricInfo[] = [
+  { key: "records_digitized_pct", label: "Records digitized", unit: "%", decimals: 1 },
+  { key: "pending_disputes", label: "Pending disputes", unit: "", decimals: 0 },
+  { key: "avg_resolution_days", label: "Avg resolution time", unit: " days", decimals: 0 },
+  { key: "women_owned_pct", label: "Women-owned land", unit: "%", decimals: 1 },
+  { key: "climate_vuln_index", label: "Climate vulnerability index", unit: "", decimals: 1 },
+  { key: "built_up_pct", label: "Built-up land", unit: "%", decimals: 1 },
+];
+
+export interface TrendPoint {
+  year: number;
+  value: number | null;
+}
+
+export interface TrendForecastData {
+  state: string;
+  metric: ForecastMetric;
+  /** Historical observations from land_metrics (2019 to 2024). */
+  actual: TrendPoint[];
+  /** Linear trend values from the forecasts table (2025 to 2027). */
+  forecast: TrendPoint[];
+}
+
+/**
+ * One region's single-metric series: historical years from land_metrics plus
+ * forecast years from the forecasts table. Both come straight from Supabase;
+ * no values are computed client-side.
+ */
+export async function getTrendForecast(state: string, metric: ForecastMetric): Promise<TrendForecastData> {
+  if (!state) throw new Error("Select a state before loading a forecast.");
+
+  const { data: region, error: regionError } = await supabase
+    .from("regions")
+    .select("id")
+    .eq("name", state)
+    .maybeSingle();
+  if (regionError) throw new Error("Failed to resolve the selected state.");
+  if (!region) throw new Error(`No data for ${state}.`);
+
+  const [history, projection] = await Promise.all([
+    supabase
+      .from("land_metrics")
+      .select(`year, ${metric}`)
+      .eq("region_id", region.id)
+      .order("year", { ascending: true }),
+    supabase
+      .from("forecasts")
+      .select("year, value")
+      .eq("region_id", region.id)
+      .eq("metric", metric)
+      .order("year", { ascending: true }),
+  ]);
+
+  if (history.error) throw new Error("Failed to load historical metrics.");
+  if (projection.error) throw new Error("Failed to load forecast values.");
+
+  const actual = (history.data ?? [])
+    .map((row) => ({
+      year: Number((row as Record<string, unknown>).year),
+      value: ((row as Record<string, unknown>)[metric] as number | null) ?? null,
+    }))
+    .sort((a, b) => a.year - b.year);
+
+  const forecast = (projection.data ?? [])
+    .map((row) => ({
+      year: Number((row as Record<string, unknown>).year),
+      value: ((row as Record<string, unknown>).value as number | null) ?? null,
+    }))
+    .sort((a, b) => a.year - b.year);
+
+  return { state, metric, actual, forecast };
+}
+
 /* ----------------------------------- csv ---------------------------------- */
 
 /**

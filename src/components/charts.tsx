@@ -6,7 +6,8 @@ interface LineSeries {
   accent?: boolean;
 }
 
-function niceMax(v: number) {
+/** Round a chart maximum up to a tidy tick-friendly value (shared). */
+export function niceMax(v: number) {
   if (v <= 1) return Math.ceil(v * 10) / 10;
   const mag = Math.pow(10, Math.floor(Math.log10(v)));
   return Math.ceil(v / (mag / 2)) * (mag / 2);

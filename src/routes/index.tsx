@@ -2,12 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Page } from "../components/site";
-import { Loading, ErrorBox } from "../components/states";
-import { BarChart, LineChart, ProgressList } from "../components/charts";
+import { Loading, ErrorBox, EmptyBox } from "../components/states";
+import { BarChart, LineChart, ProgressList, niceMax } from "../components/charts";
 import { RegionMap, type MapLayer } from "../components/region-map";
 import { Reveal, CountUp } from "../components/motion";
 import { TopoLines, SectionRule } from "../components/decor";
-import { buildDashboardCsv, getDashboard, getRegionMetrics, getYears, type DashboardData } from "../lib/api";
+import { buildDashboardCsv, getDashboard, getRegionMetrics, getStates, getTrendForecast, getYears, FORECAST_METRICS, type DashboardData, type ForecastMetric } from "../lib/api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -318,6 +318,227 @@ function KeyInsights({ data, metrics }: { data: DashboardData; metrics: Awaited<
   );
 }
 
+/* ------------------------------ trend forecast ------------------------------ */
+
+/**
+ * "Trend forecast" card: one state, one metric, actual 2019-2024 history from
+ * land_metrics joined to the 2025-2027 linear-trend values from the forecasts
+ * table. The forecast half is dashed and accent-colored; both halves stay
+ * visually connected by sharing the 2024 junction point.
+ */
+function TrendForecastCard() {
+  const statesQuery = useQuery({ queryKey: ["states"], queryFn: getStates });
+  const [state, setState] = useState("");
+  const [metric, setMetric] = useState<ForecastMetric>("records_digitized_pct");
+
+  /* Adopt the first loaded state, matching the simulator's control pattern. */
+  if (statesQuery.data && statesQuery.data.length > 0 && !state) setState(statesQuery.data[0]!);
+
+  const query = useQuery({
+    queryKey: ["trendForecast", state, metric],
+    queryFn: () => getTrendForecast(state, metric),
+    enabled: state !== "",
+  });
+
+  const meta = FORECAST_METRICS.find((m) => m.key === metric) ?? FORECAST_METRICS[0]!;
+  const hasData = !!query.data && (query.data.actual.length > 0 || query.data.forecast.length > 0);
+
+  /* Combined label axis: actual years first, then forecast years. The chart
+     re-states the 2024 value in the forecast path so its dashed line starts
+     exactly where the solid line ends. */
+  const labels = hasData
+    ? [...query.data!.actual.map((p) => String(p.year)), ...query.data!.forecast.map((p) => String(p.year))]
+    : [];
+  const actualValues = hasData ? query.data!.actual.map((p) => p.value) : [];
+  /* Forecast path includes the 2024 junction so the dashed segment connects. */
+  const forecastValues = hasData
+    ? [query.data!.actual.at(-1)?.value ?? null, ...query.data!.forecast.map((p) => p.value)]
+    : [];
+  const forecastStartIndex = hasData ? query.data!.actual.length - 1 : 0;
+
+  return (
+    <figure className="panel panel-hover p-5">
+      <figcaption className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <span className="text-sm font-semibold text-[var(--ink)]">
+          Trend forecast, {state || "select a state"}
+          <span className="mt-0.5 block text-xs font-normal leading-5 text-[var(--muted-foreground)]">
+            Actual values 2019 to 2024 from land_metrics, joined to linear trend values 2025 to 2027 from the forecasts
+            table.
+          </span>
+        </span>
+        <ul className="flex flex-wrap gap-4 text-xs text-[var(--muted-foreground)]">
+          <li className="flex items-center gap-2">
+            <span className="inline-block h-0 w-6" style={{ borderTop: "2px solid var(--primary)" }} />
+            Actual
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="inline-block h-0 w-6" style={{ borderTop: "2px dashed var(--accent)" }} />
+            Forecast
+          </li>
+        </ul>
+      </figcaption>
+      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="block text-sm">
+          <span className="card-label mb-1.5 block">State</span>
+          <select value={state} onChange={(e) => setState(e.target.value)} aria-label="Forecast state">
+            {(statesQuery.data ?? []).map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-sm">
+          <span className="card-label mb-1.5 block">Metric</span>
+          <select value={metric} onChange={(e) => setMetric(e.target.value as ForecastMetric)} aria-label="Forecast metric">
+            {FORECAST_METRICS.map((m) => (
+              <option key={m.key} value={m.key}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {query.isPending ? <Loading /> : null}
+      {query.isError ? <ErrorBox message={(query.error as Error).message} onRetry={() => query.refetch()} /> : null}
+      {hasData ? (
+        <>
+          <div className="overflow-x-auto">
+            <TrendForecastChart
+              labels={labels}
+              actualValues={actualValues}
+              forecastValues={forecastValues}
+              forecastStartIndex={forecastStartIndex}
+              unit={meta.unit}
+              decimals={meta.decimals}
+            />
+          </div>
+          <p className="mt-3 text-xs leading-5 text-[var(--muted-foreground)]">
+            Linear trend forecast on sample data. Not a prediction of real outcomes.
+          </p>
+        </>
+      ) : null}
+      {!query.isPending && !query.isError && !hasData ? (
+        <EmptyBox
+          title="No forecast data"
+          message={`No historical or forecast values are available for ${state || "this state"} and ${meta.label.toLowerCase()}.`}
+        />
+      ) : null}
+    </figure>
+  );
+}
+
+/**
+ * SVG chart for the trend forecast card, following the existing chart visual
+ * language (gridlines, tabular ticks, hover titles). The actual line is solid
+ * primary; the forecast line is dashed accent. Both are drawn from the same
+ * coordinate space so the halves read as one continuous series.
+ */
+function TrendForecastChart({ labels, actualValues, forecastValues, forecastStartIndex, unit, decimals }: {
+  labels: string[];
+  actualValues: (number | null)[];
+  /** Length labels.length; index 0 is the 2024 junction point. */
+  forecastValues: (number | null)[];
+  forecastStartIndex: number;
+  unit: string;
+  decimals: number;
+}) {
+  const w = Math.max(560, labels.length * 58);
+  const h = 280;
+  const pad = { l: 56, r: 20, t: 18, b: 40 };
+  const all = [...actualValues, ...forecastValues].filter((v): v is number => v !== null);
+  const max = niceMax(Math.max(...all, 1));
+  const min = 0;
+  const plotW = w - pad.l - pad.r;
+  const plotH = h - pad.t - pad.b;
+  const x = (i: number) => pad.l + (labels.length === 1 ? plotW / 2 : (i * plotW) / (labels.length - 1));
+  const y = (v: number) => pad.t + plotH - ((v - min) / (max - min)) * plotH;
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => min + f * (max - min));
+
+  const toPath = (values: (number | null)[], startIndex: number) => {
+    let d = "";
+    for (let i = 0; i < values.length; i++) {
+      const v = values[i];
+      if (v === null) continue;
+      d += `${d === "" ? "M" : "L"}${x(startIndex + i).toFixed(1)},${y(v).toFixed(1)} `;
+    }
+    return d.trim();
+  };
+
+  const actualPath = toPath(actualValues, 0);
+  const forecastPath = toPath(forecastValues, forecastStartIndex);
+  const junction = actualValues[forecastStartIndex];
+  const fmt = (v: number) => v.toLocaleString("en-IN", { maximumFractionDigits: decimals });
+
+  return (
+    <svg width={w} height={h} role="img" aria-label="Trend forecast chart, actual history with linear trend forecast" className="block">
+      {ticks.map((t) => (
+        <g key={t}>
+          <line x1={pad.l} x2={w - pad.r} y1={y(t)} y2={y(t)} stroke="var(--grid-line)" strokeWidth="1" />
+          <text x={pad.l - 8} y={y(t) + 4} textAnchor="end" fontSize="11" fill="var(--muted-foreground)" style={{ fontVariantNumeric: "tabular-nums" }}>
+            {Number(t.toFixed(2))}
+            {unit}
+          </text>
+        </g>
+      ))}
+      {labels.map((l, i) => (
+        <text
+          key={l + i}
+          x={x(i)}
+          y={h - pad.b + 20}
+          textAnchor="middle"
+          fontSize="11"
+          fontWeight={i > forecastStartIndex ? "600" : undefined}
+          fill={i > forecastStartIndex ? "var(--primary)" : "var(--muted-foreground)"}
+        >
+          {l}
+        </text>
+      ))}
+
+      {/* Forecast zone: subtle vertical separator at the junction year. */}
+      <line
+        x1={x(forecastStartIndex)}
+        x2={x(forecastStartIndex)}
+        y1={pad.t}
+        y2={pad.t + plotH}
+        stroke="var(--border)"
+        strokeWidth="1"
+        strokeDasharray="3 4"
+      />
+
+      <path d={actualPath} fill="none" stroke="var(--primary)" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" className="anim-line" style={{ "--bs-dash-len": 2400 } as React.CSSProperties} />
+      <path d={forecastPath} fill="none" stroke="var(--accent)" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="6 5" />
+
+      {actualValues.map((v, i) =>
+        v === null ? null : (
+          <g key={`a${i}`}>
+            <circle cx={x(i)} cy={y(v)} r="7" fill="transparent">
+              <title>{`${labels[i]}: ${fmt(v)}${unit}`}</title>
+            </circle>
+            <circle cx={x(i)} cy={y(v)} r="3" fill="var(--surface)" stroke="var(--primary)" strokeWidth="1.75" />
+          </g>
+        ),
+      )}
+      {/* Forecast points offset by one slot (index 0 is the shared junction). */}
+      {forecastValues.map((v, i) =>
+        i === 0 || v === null ? null : (
+          <g key={`f${i}`}>
+            <circle cx={x(forecastStartIndex + i)} cy={y(v)} r="7" fill="transparent">
+              <title>{`${labels[forecastStartIndex + i]}: ${fmt(v)}${unit} (forecast)`}</title>
+            </circle>
+            <circle cx={x(forecastStartIndex + i)} cy={y(v)} r="3" fill="var(--surface)" stroke="var(--accent)" strokeWidth="1.75" strokeDasharray="2 2" />
+          </g>
+        ),
+      )}
+      {/* Junction marker shared by both halves. */}
+      {junction !== null && junction !== undefined ? (
+        <circle cx={x(forecastStartIndex)} cy={y(junction)} r="4" fill="var(--surface)" stroke="var(--ink)" strokeWidth="1.75" />
+      ) : null}
+
+      <line x1={pad.l} x2={w - pad.r} y1={pad.t + plotH} y2={pad.t + plotH} stroke="var(--primary)" strokeWidth="1" opacity="0.5" />
+      <line x1={pad.l} x2={pad.l} y1={pad.t} y2={pad.t + plotH} stroke="var(--primary)" strokeWidth="1" opacity="0.5" />
+    </svg>
+  );
+}
+
 /* ------------------------------ dashboard ------------------------------ */
 
 function Dashboard() {
@@ -467,6 +688,7 @@ function Dashboard() {
                 />
               </Reveal>
             </div>
+            <TrendForecastCard />
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <Reveal delay={60}>
                 <BarChart
