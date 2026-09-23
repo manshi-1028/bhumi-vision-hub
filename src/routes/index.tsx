@@ -457,7 +457,7 @@ function TrendForecastChart({ labels, actualValues, forecastValues, forecastStar
     let d = "";
     for (let i = 0; i < values.length; i++) {
       const v = values[i];
-      if (v === null) continue;
+      if (v === null || v === undefined) continue;
       d += `${d === "" ? "M" : "L"}${x(startIndex + i).toFixed(1)},${y(v).toFixed(1)} `;
     }
     return d.trim();

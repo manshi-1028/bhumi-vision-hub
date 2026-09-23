@@ -4,6 +4,7 @@
  */
 
 import { supabase } from "./supabase";
+import { computeSimulation, type SimulationComputation } from "./simulate";
 
 export type Role = "researcher" | "institution" | "official";
 
@@ -551,19 +552,12 @@ export async function getPolicyLevers(): Promise<PolicyLever[]> {
   }));
 }
 
-export interface SimulationRow {
-  indicator: string;
-  unit: string;
-  baseline: number;
-  projected: number;
-}
+export type { SimulationComputation } from "./simulate";
 
 export interface SimulationResult {
-  rows: SimulationRow[];
-  years: string[];
-  baselineSeries: number[];
-  projectedSeries: number[];
-  headline: string;
+  /** land_metrics year the baseline was read from. */
+  baselineYear: number;
+  computation: SimulationComputation;
 }
 
 export async function runSimulation(
@@ -572,8 +566,11 @@ export async function runSimulation(
   intensity: number,
 ): Promise<SimulationResult> {
   if (!state) throw new Error("Select a state before running a projection.");
+  if (!Number.isFinite(intensity) || intensity < 0 || intensity > 5) {
+    throw new Error("Intensity must be between 0 and 5 units.");
+  }
 
-  // Get the region's latest metrics as baseline
+  // Get the region's latest metrics row as the baseline
   const { data: region } = await supabase
     .from("regions")
     .select("id")
@@ -583,7 +580,7 @@ export async function runSimulation(
 
   const { data: metrics, error: metErr } = await supabase
     .from("land_metrics")
-    .select("records_digitized_pct, pending_disputes, avg_resolution_days, women_owned_pct, climate_vuln_index")
+    .select("year, records_digitized_pct, pending_disputes, avg_resolution_days, women_owned_pct")
     .eq("region_id", region.id)
     .order("year", { ascending: false })
     .limit(1)
@@ -591,6 +588,15 @@ export async function runSimulation(
 
   if (metErr) throw new Error(`Failed to load metrics for ${state}.`);
   if (!metrics) throw new Error(`No metrics found for ${state}.`);
+  if (
+    metrics.year == null ||
+    metrics.records_digitized_pct == null ||
+    metrics.pending_disputes == null ||
+    metrics.avg_resolution_days == null ||
+    metrics.women_owned_pct == null
+  ) {
+    throw new Error(`The latest metrics row for ${state} is incomplete, so no projection can be run.`);
+  }
 
   // Get the selected policy lever
   const { data: lever, error: leverErr } = await supabase
@@ -602,63 +608,27 @@ export async function runSimulation(
   if (leverErr) throw new Error("Failed to load the selected policy lever.");
   if (!lever) throw new Error("Policy lever not found.");
 
-  const k = intensity / 100;
+  // Projection math lives in the pure simulation module.
+  const computation = computeSimulation({
+    state,
+    leverName: lever.name,
+    intensity,
+    baseline: {
+      year: metrics.year,
+      recordsDigitizedPct: metrics.records_digitized_pct,
+      pendingDisputes: metrics.pending_disputes,
+      avgResolutionDays: metrics.avg_resolution_days,
+      womenOwnedPct: metrics.women_owned_pct,
+    },
+    effects: {
+      effDigitization: lever.eff_digitization ?? 0,
+      effDisputesPct: lever.eff_disputes_pct ?? 0,
+      effResolutionDays: lever.eff_resolution_days ?? 0,
+      effWomenOwned: lever.eff_women_owned ?? 0,
+    },
+  });
 
-  const baseline = {
-    digitized: metrics.records_digitized_pct ?? 70,
-    disputes: (metrics.pending_disputes ?? 100000) / 1000,
-    resolution: metrics.avg_resolution_days ?? 900,
-    women: metrics.women_owned_pct ?? 15,
-    climate: metrics.climate_vuln_index ?? 0.6,
-  };
-
-  const rows: SimulationRow[] = [
-    {
-      indicator: "Records digitized",
-      unit: "%",
-      baseline: Number(baseline.digitized.toFixed(2)),
-      projected: Number((baseline.digitized + lever.eff_digitization * k).toFixed(2)),
-    },
-    {
-      indicator: "Pending disputes",
-      unit: "thousands",
-      baseline: Number(baseline.disputes.toFixed(2)),
-      projected: Number((baseline.disputes * (1 + (lever.eff_disputes_pct / 100) * k)).toFixed(2)),
-    },
-    {
-      indicator: "Average resolution time",
-      unit: "days",
-      baseline: Number(baseline.resolution.toFixed(2)),
-      projected: Number((baseline.resolution + lever.eff_resolution_days * k).toFixed(2)),
-    },
-    {
-      indicator: "Women-owned land",
-      unit: "%",
-      baseline: Number(baseline.women.toFixed(2)),
-      projected: Number((baseline.women + lever.eff_women_owned * k).toFixed(2)),
-    },
-    {
-      indicator: "Climate vulnerability",
-      unit: "index",
-      baseline: Number(baseline.climate.toFixed(2)),
-      projected: Number((baseline.climate * (1 - 0.03 * k)).toFixed(2)),
-    },
-  ];
-
-  const headlineRow = rows[0]!;
-  const years = ["2026", "2027", "2028", "2029", "2030"];
-  const baselineSeries = years.map((_, i) => Number((headlineRow.baseline + i * 1.2).toFixed(2)));
-  const projectedSeries = years.map((_, i) =>
-    Number((headlineRow.baseline + i * 1.2 + (headlineRow.projected - headlineRow.baseline) * ((i + 1) / years.length)).toFixed(2)),
-  );
-
-  return {
-    rows,
-    years,
-    baselineSeries,
-    projectedSeries,
-    headline: `${headlineRow.indicator} (${headlineRow.unit})`,
-  };
+  return { baselineYear: metrics.year, computation };
 }
 
 /* ------------------------------ trend forecast ----------------------------- */
@@ -738,15 +708,15 @@ export async function getTrendForecast(state: string, metric: ForecastMetric): P
 
   const actual = (history.data ?? [])
     .map((row) => ({
-      year: Number((row as Record<string, unknown>).year),
+      year: Number((row as Record<string, unknown>)["year"]),
       value: ((row as Record<string, unknown>)[metric] as number | null) ?? null,
     }))
     .sort((a, b) => a.year - b.year);
 
   const forecast = (projection.data ?? [])
     .map((row) => ({
-      year: Number((row as Record<string, unknown>).year),
-      value: ((row as Record<string, unknown>).value as number | null) ?? null,
+      year: Number((row as Record<string, unknown>)["year"]),
+      value: ((row as Record<string, unknown>)["value"] as number | null) ?? null,
     }))
     .sort((a, b) => a.year - b.year);
 

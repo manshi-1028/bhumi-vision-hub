@@ -31,7 +31,7 @@ export const Route = createFileRoute("/simulator")({
 function Simulator() {
   const [state, setState] = useState("");
   const [leverId, setLeverId] = useState("");
-  const [intensity, setIntensity] = useState(50);
+  const [intensity, setIntensity] = useState(2);
   const [submitted, setSubmitted] = useState<{ state: string; leverId: string; intensity: number } | null>(null);
 
   const { data: states } = useQuery({ queryKey: ["states"], queryFn: getStates });
@@ -71,6 +71,10 @@ function Simulator() {
         </div>
       </section>
 
+      <p role="note" className="mt-6 border border-[oklch(0.55_0.125_62/35%)] bg-[var(--accent-soft)] px-4 py-3 text-sm font-semibold text-[var(--accent)]">
+        Illustrative model with assumed effects. Not a validated forecast.
+      </p>
+
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(320px,2fr)_3fr]">
         {/* Controls */}
         <Reveal>
@@ -99,20 +103,20 @@ function Simulator() {
 
             <label className="mt-6 block text-sm">
               <span className="card-label mb-2 flex items-center justify-between">
-                <span>Intensity</span>
+                <span>Intensity (units)</span>
                 <span className="metric-num text-lg !normal-case !tracking-normal">{intensity}</span>
               </span>
               <input
                 type="range"
                 min={0}
-                max={100}
+                max={5}
                 step={1}
                 value={intensity}
                 onChange={(e) => setIntensity(Number(e.target.value))}
-                aria-label="Policy intensity"
+                aria-label="Policy intensity in units"
               />
               <span className="mt-1 flex justify-between text-[10px] uppercase tracking-wide text-[var(--muted-foreground)]">
-                <span>Low</span><span>High</span>
+                <span>0</span><span>5</span>
               </span>
             </label>
 
@@ -160,8 +164,9 @@ function Simulator() {
                     <h2 className="font-serif text-xl">{submitted?.state}</h2>
                     {/* Self-describing results: the exact parameters behind this projection. */}
                     <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                      Lever: <strong className="font-semibold">{submittedLever?.name ?? submitted?.leverId}</strong>
-                      <span aria-hidden="true"> · </span>Intensity: <strong className="font-semibold tabular-nums">{submitted?.intensity}</strong>/100
+                      Baseline: <strong className="font-semibold tabular-nums">{query.data.baselineYear}</strong> land_metrics row
+                      <span aria-hidden="true"> · </span>Lever: <strong className="font-semibold">{submittedLever?.name ?? submitted?.leverId}</strong>
+                      <span aria-hidden="true"> · </span>Intensity: <strong className="font-semibold tabular-nums">{submitted?.intensity}</strong>/5 units
                     </p>
                     {stale ? (
                       <p className="anim-up mt-2 inline-flex items-center gap-2 border border-[oklch(0.55_0.125_62/35%)] bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--accent)]" role="status">
@@ -177,23 +182,23 @@ function Simulator() {
                           <th className="px-6 py-3 font-semibold">Indicator</th>
                           <th className="px-4 py-3 font-semibold">Unit</th>
                           <th className="px-4 py-3 text-right font-semibold">Baseline</th>
-                          <th className="px-4 py-3 text-right font-semibold">Projected</th>
+                          <th className="px-4 py-3 text-right font-semibold">Projected (year 5)</th>
                           <th className="px-6 py-3 text-right font-semibold">Change</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {query.data.rows.map((r, i) => {
+                        {query.data.computation.rows.map((r, i) => {
                           const change = r.projected - r.baseline;
                           return (
                             <tr key={r.indicator} className="border-b border-[var(--border)] transition-colors last:border-0 hover:bg-[var(--primary-soft)]" style={{ animation: "bs-fade-in 500ms ease both", animationDelay: `${i * 80}ms` }}>
                               <td className="px-6 py-3 font-medium">{r.indicator}</td>
                               <td className="px-4 py-3 text-[var(--muted-foreground)]">{r.unit}</td>
-                              <td className="px-4 py-3 text-right tabular-nums text-[var(--muted-foreground)]">{r.baseline.toFixed(2)}</td>
+                              <td className="px-4 py-3 text-right tabular-nums text-[var(--muted-foreground)]">{r.baseline.toFixed(r.decimals)}</td>
                               <td className="px-4 py-3 text-right font-semibold tabular-nums">
-                                <CountUp value={r.projected} decimals={2} duration={700} />
+                                <CountUp value={r.projected} decimals={r.decimals} duration={700} />
                               </td>
                               <td className={`px-6 py-3 text-right font-semibold tabular-nums ${change >= 0 ? "text-[var(--primary-bright)]" : "text-[var(--accent)]"}`}>
-                                {change >= 0 ? "+" : ""}{change.toFixed(2)}
+                                {change >= 0 ? "+" : "-"}{Math.abs(change).toFixed(r.decimals)} {r.unit}
                               </td>
                             </tr>
                           );
@@ -204,30 +209,26 @@ function Simulator() {
                 </section>
               </Reveal>
 
-              {/* Interpretation — derived strictly from the computed changes above. */}
-              {(() => {
-                const biggest = query.data.rows.reduce((a, b) =>
-                  Math.abs(b.projected - b.baseline) > Math.abs(a.projected - a.baseline) ? b : a,
-                );
-                const delta = biggest.projected - biggest.baseline;
-                return (
-                  <p className="anim-up text-sm text-[var(--muted-foreground)]" role="note">
-                    <strong className="font-semibold text-[var(--foreground)]">Reading this projection:</strong> the
-                    largest modelled change is in {biggest.indicator.toLowerCase()} ({delta >= 0 ? "+" : ""}
-                    {delta.toFixed(2)} {biggest.unit}) at the selected intensity.
-                  </p>
-                );
-              })()}
+              {/* One-sentence result summary, computed alongside the projection. */}
+              <p className="anim-up text-sm leading-6 text-[var(--muted-foreground)]" role="note">
+                <strong className="font-semibold text-[var(--foreground)]">Summary:</strong> {query.data.computation.summary}
+              </p>
 
               <Reveal delay={120}>
-                <LineChart
-                  title={`Before and after projection, ${query.data.headline}`}
-                  labels={query.data.years}
-                  series={[
-                    { name: "Baseline", values: query.data.baselineSeries },
-                    { name: "With policy lever", values: query.data.projectedSeries, accent: true },
-                  ]}
-                />
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  {query.data.computation.charts.map((c) => (
+                    <LineChart
+                      key={c.key}
+                      title={c.title}
+                      yUnit={c.unit}
+                      labels={query.data!.computation.horizonYears}
+                      series={[
+                        { name: "Baseline", values: c.baselineSeries },
+                        { name: "Projected", values: c.projectedSeries, accent: true },
+                      ]}
+                    />
+                  ))}
+                </div>
               </Reveal>
 
               <p className="text-xs text-[var(--muted-foreground)]">
