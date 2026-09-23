@@ -490,12 +490,33 @@ export async function getSubmissions(): Promise<Submission[]> {
 
 export async function decideSubmission(id: string, decision: "approve" | "reject"): Promise<void> {
   const status = decision === "approve" ? "approved" : "rejected";
-  const { error } = await supabase.rpc("approve_submission", {
+
+  // Preferred path: the project's server-side approval RPC (if it exists).
+  const { error: rpcError } = await supabase.rpc("approve_submission", {
     p_id: id,
     p_status: status,
   });
-  if (error) {
-    throw new Error(error.message || "Failed to update submission status.");
+  if (!rpcError) return;
+
+  // The live database does not define approve_submission (PGRST202) — fall back
+  // to a direct status update, which the submissions RLS policies still guard:
+  // only sessions the policies allow can change a row. Any other RPC failure is
+  // surfaced instead of silently swallowed.
+  if (rpcError.code !== "PGRST202") {
+    throw new Error(rpcError.message || "Failed to update submission status.");
+  }
+
+  const { error: updateError } = await supabase
+    .from("submissions")
+    .update({ status })
+    .eq("id", id)
+    .eq("status", "pending"); // only pending rows are decidable
+  if (updateError) {
+    throw new Error(
+      updateError.code === "42501"
+        ? "Your account is not permitted to review submissions."
+        : updateError.message || "Failed to update submission status.",
+    );
   }
 }
 
