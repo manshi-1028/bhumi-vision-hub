@@ -9,7 +9,7 @@ import { Globe } from "../components/ui/globe";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Login | BhoomiSetu" },
+      { title: "BhoomiSetu | Land Governance Intelligence Platform" },
       { name: "description", content: "Sign in to submit research or review submissions on the BhoomiSetu platform." },
       { property: "og:title", content: "Login | BhoomiSetu" },
       { property: "og:description", content: "Sign in for the BhoomiSetu platform, SIH26019." },
@@ -135,7 +135,7 @@ function Login() {
             <p className="card-label mb-2">Demo environment</p>
             <p className="text-xs leading-5 text-[var(--muted-foreground)]">
               This deployment runs on demonstration data. Accounts for researcher, institution and official roles are
-              provisioned in the demo environment. The password for every demo account is <code className="border border-[var(--border)] bg-[var(--primary-soft)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--primary)]">demo123</code>.
+              provisioned in the demo environment.
             </p>
           </div>
         </section>

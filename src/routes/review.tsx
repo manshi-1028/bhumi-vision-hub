@@ -8,7 +8,7 @@ import { decideSubmission, getSubmissions, type Submission } from "../lib/api";
 export const Route = createFileRoute("/review")({
   head: () => ({
     meta: [
-      { title: "Review queue | BhoomiSetu" },
+      { title: "BhoomiSetu | Land Governance Intelligence Platform" },
       { name: "description", content: "Government officials review, approve or reject research submitted to the repository." },
       { property: "og:title", content: "Review queue | BhoomiSetu" },
       { property: "og:description", content: "Official review queue for submitted land governance research." },

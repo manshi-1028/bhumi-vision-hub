@@ -12,7 +12,7 @@ import { getPolicyLevers, getStates, runSimulation } from "../lib/api";
 export const Route = createFileRoute("/simulator")({
   head: () => ({
     meta: [
-      { title: "Policy simulator | BhoomiSetu" },
+      { title: "BhoomiSetu | Land Governance Intelligence Platform" },
       {
         name: "description",
         content: "Project the effect of land governance policy levers on state indicators using a simplified model on sample data.",

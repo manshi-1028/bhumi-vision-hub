@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- BhoomiSetu favicon: simplified navbar brand mark, readable at 16px.
+       Parcel outline in primary green, bridge stroke in amber, on the warm
+       off-white background tile so it stays visible on dark tab bars. -->
+  <rect width="32" height="32" fill="#f9f7f2"/>
+  <path d="M5 4h14l8 6v14l-10 4H5V4Z" fill="none" stroke="#193f2d" stroke-width="2.75" stroke-linejoin="round"/>
+  <path d="M2 22c6-6 10-6 15-2s9 4 13-1" fill="none" stroke="#a45e05" stroke-width="2.75" stroke-linecap="round"/>
+</svg>

@@ -6,7 +6,7 @@ import { TopoLines, SectionRule } from "../components/decor";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About the platform | BhoomiSetu" },
+      { title: "BhoomiSetu | Land Governance Intelligence Platform" },
       {
         name: "description",
         content: "The problem, what the platform does, what is built in this demo and what is planned for BhoomiSetu, SIH26019.",

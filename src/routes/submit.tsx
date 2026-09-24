@@ -8,7 +8,7 @@ import { Reveal } from "../components/motion";
 export const Route = createFileRoute("/submit")({
   head: () => ({
     meta: [
-      { title: "Submit research | BhoomiSetu" },
+      { title: "BhoomiSetu | Land Governance Intelligence Platform" },
       { name: "description", content: "Researchers and institutions can submit land governance research to the repository for review." },
       { property: "og:title", content: "Submit research | BhoomiSetu" },
       { property: "og:description", content: "Submit a research item to the BhoomiSetu repository for official review." },

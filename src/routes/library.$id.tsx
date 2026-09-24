@@ -9,7 +9,7 @@ import { getRecommended, getResearchItem } from "../lib/api";
 export const Route = createFileRoute("/library/$id")({
   head: ({ params }) => ({
     meta: [
-      { title: `Research item ${params.id.slice(0, 8)} | BhoomiSetu` },
+      { title: "BhoomiSetu | Land Governance Intelligence Platform" },
       { name: "description", content: `Details, tags and related reading for research item ${params.id.slice(0, 8)} in the BhoomiSetu repository.` },
       { property: "og:title", content: `Research item ${params.id.slice(0, 8)} | BhoomiSetu` },
       { property: "og:description", content: "Research item detail in the BhoomiSetu repository. Sample data." },

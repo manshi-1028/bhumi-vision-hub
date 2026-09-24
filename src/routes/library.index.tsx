@@ -10,7 +10,7 @@ import { getStates, getTopics, getTypes, searchLibrary } from "../lib/api";
 export const Route = createFileRoute("/library/")({
   head: () => ({
     meta: [
-      { title: "Research & evidence repository | BhoomiSetu" },
+      { title: "BhoomiSetu | Land Governance Intelligence Platform" },
       {
         name: "description",
         content: "Search policy briefs, datasets, field studies and reports on land governance across twelve states.",

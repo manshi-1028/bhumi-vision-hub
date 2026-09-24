@@ -13,7 +13,7 @@ import { buildDashboardCsv, getDashboard, getRegionMetrics, getStates, getTrendF
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "BhoomiSetu, national land governance intelligence platform" },
+      { title: "BhoomiSetu | Land Governance Intelligence Platform" },
       {
         name: "description",
         content:
