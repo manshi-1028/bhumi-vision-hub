@@ -15,11 +15,11 @@ BhoomiSetu is a digital platform for **research discovery, land-governance analy
 
 The platform brings regional land indicators, research evidence, statistical trend forecasts, geographic visualization, policy simulations, and evidence review into a unified workflow for researchers, institutions, and government officials.
 
-### Core capabilities
+### Core Capabilities
 
 * Research discovery and evidence management
 * Regional land-governance monitoring
-* Interactive regional/GIS visualization
+* Interactive regional map visualization
 * Statistical trend forecasting
 * Policy scenario exploration
 * Evidence submission and official review
@@ -68,11 +68,11 @@ The dashboard provides a consolidated view of regional land-governance indicator
 
 ---
 
-## 2. Interactive Regional/GIS Visualization
+## 2. Interactive Regional Map Visualization
 
 The dashboard provides map-based regional exploration of land-governance indicators.
 
-Users can explore regional differences through available map layers, including indicators related to:
+Users can explore regional differences through available map layers covering indicators such as:
 
 * Records digitisation
 * Pending disputes
@@ -81,7 +81,7 @@ Users can explore regional differences through available map layers, including i
 * Climate vulnerability
 * Built-up land
 
-The map is integrated directly into the dashboard alongside the analytical indicators.
+The map is integrated into the dashboard alongside the analytical indicators.
 
 > **Current scope:** The visualization is a prototype using sample regional data. Advanced spatial analysis, satellite/remote-sensing layers, and broader geographic datasets are planned for future development.
 
@@ -122,23 +122,23 @@ The implementation is available at:
 analytics/forecast.py
 ```
 
-For each region and selected metric, historical observations are fitted using a simple linear model:
+The forecasting process is:
 
 ```text
 Historical observations
         ↓
-Linear fitting
+Linear trend fitting
         ↓
 Trend equation
         ↓
 Future-year estimates
 ```
 
-The implementation uses `numpy.polyfit(..., 1)` to estimate the linear relationship between year and metric value.
+For each region and selected metric, historical observations are fitted using a simple linear model through `numpy.polyfit(..., 1)`.
 
 Percentage and index-based indicators are constrained to a `0–100` range, while non-negative indicators are prevented from producing negative values.
 
-### Important limitation
+### Important Limitation
 
 This is a **statistical trend model, not an AI prediction system**.
 
@@ -204,7 +204,7 @@ The submission interface captures relevant research information including:
 
 ## 7. Official Review Workspace
 
-Government-official accounts can access the review workspace.
+Official accounts can access the review workspace.
 
 Officials can:
 
@@ -213,7 +213,7 @@ Officials can:
 * Approve submissions
 * Reject submissions
 
-This provides a basic evidence-review workflow between researchers, institutions, and authorized officials.
+This provides an evidence-review workflow between researchers, institutions, and authorized officials.
 
 ![Review Workspace](screenshots/review.png)
 
@@ -223,7 +223,7 @@ This provides a basic evidence-review workflow between researchers, institutions
 
 BhoomiSetu uses **Supabase Authentication** for user identity and role information stored in the `profiles` table.
 
-The current roles are:
+### Roles
 
 | Role        | Access                                                         |
 | ----------- | -------------------------------------------------------------- |
@@ -244,7 +244,7 @@ The review workspace is restricted to users with the appropriate official role.
 
 ![Login](screenshots/login.png)
 
-### Demo credentials
+### Demo Credentials
 
 Authentication credentials are **not committed to the repository**.
 
@@ -446,21 +446,20 @@ You will need:
 * Supabase project URL
 * Supabase anonymous key
 
-## Clone the repository
+## Clone the Repository
 
 ```bash
 git clone https://github.com/manshi-1028/bhumi-vision-hub.git
-
 cd bhumi-vision-hub
 ```
 
-## Install dependencies
+## Install Dependencies
 
 ```bash
 bun install
 ```
 
-## Configure environment variables
+## Configure Environment Variables
 
 Create a `.env` file in the project root:
 
@@ -473,7 +472,7 @@ Use your own Supabase project URL and anonymous key when running the project loc
 
 **Do not commit private credentials or secrets to GitHub.**
 
-## Start development server
+## Start Development Server
 
 ```bash
 bun run dev
@@ -485,7 +484,7 @@ bun run dev
 bun run build
 ```
 
-## Static deployment build
+## Static Deployment Build
 
 ```bash
 bun run build:static
@@ -497,7 +496,7 @@ bun run build:static
 
 The current prototype is deployed using **Freebuff**.
 
-**Live deployment:**
+**Live Deployment:**
 
 https://bhoomisetu.freebuff.app/
 
@@ -520,7 +519,7 @@ The deployment build generates the static client output required by the hosting 
 * Search and filtering
 * Research recommendations
 * Land-governance dashboard
-* Interactive regional/GIS visualization
+* Interactive regional map visualization
 * CSV report generation
 * Statistical trend forecasting
 * Policy simulator
@@ -558,7 +557,7 @@ Current limitations include:
 * Limited regional coverage in the prototype dataset
 * No live integration with government information systems
 * No production-scale document ingestion pipeline
-* Prototype-level GIS visualization
+* Prototype-level regional map visualization
 
 These limitations define the boundary between the current prototype and future development.
 
@@ -570,7 +569,7 @@ These limitations define the boundary between the current prototype and future d
 
 * Research repository
 * Land-governance dashboard
-* Regional/GIS visualization
+* Regional map visualization
 * Statistical trend forecasting
 * Policy simulation
 * Evidence submission and review
