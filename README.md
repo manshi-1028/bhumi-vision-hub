@@ -1,128 +1,100 @@
-# Land Governance Platform
+# BhoomiSetu — Land Governance Intelligence Platform
 
-Build a production-quality, responsive web app for SIH26019: a National Digital Platform 
-for Research, Policy Innovation, and Evidence-Based Land Governance in India.
+Prototype for **SIH26019**: *National Digital Platform for Research, Policy
+Innovation, and Evidence-Based Land Governance* (Ministry of Rural
+Development, Department of Land Resources).
 
-AUDIENCE & TONE
-Policymakers, researchers, government officials, and hackathon judges. Serious, 
-trustworthy, institutional. No marketing fluff, no clever taglines, no slogans in the 
-"it's not X, it's Y" format. Write in plain, factual English.
+**Live demo:** https://bhoomisetu.freebuff.app
+**Demo login:** any of `researcher@…`, `institution@…`, `official@…` ·
+password `demo123` (see `/login` for the exact demo email addresses)
 
-DESIGN SYSTEM (STRICT)
-- Colors: deep forest green (#1B4332 family) as primary, warm off-white (#FAF9F6) as 
-  the page background. Dark charcoal text. One amber accent used sparingly for warnings 
-  and highlights. NO purple, NO neon, NO pastel color schemes, NO rainbow palettes, 
-  NO gradients of any kind (especially purple-to-black or blue-to-purple).
-- Typography: use a serif for headings (e.g., "Source Serif 4" or "Fraunces") and a 
-  neutral sans for body (e.g., "Public Sans" or "IBM Plex Sans"). Do NOT use Inter, 
-  Geist, or Space Grotesk.
-- Surfaces: cards and panels use a subtle 1px solid border (dark green at 15% opacity) 
-  on a slightly lighter off-white than the page. NO drop shadows, NO glassmorphism, 
-  NO blur effects.
-- Corners: sharp (0px radius) or at most 2px. NO soft/rounded corner radius.
-- Icons: inline SVG only, thin 1.5px strokes, monochrome (currentColor). NO icon 
-  libraries like Lucide, NO sparkle/star icons, NO decorative icons.
-- Layout: NO bento grids, NO 3-equal-cards-in-a-row feature sections, NO colored left 
-  stripe on cards, NO radial gradient orbs, NO dot-grid backgrounds, NO animated 
-  arrows, NO hover animations on cards or buttons (at most a simple underline on 
-  nav links and an instant color fill on buttons).
-- Bullets: standard disc bullets only. NO checkmark bullet lists.
-- Content: NO emojis anywhere. NO em dashes; use commas or periods instead.
-- Do NOT include testimonials, pricing tiers, or marketing sections.
-- Do NOT include a Terms of Service or Privacy Policy page.
-- It must look good on a phone (test at 375px width): single-column stacking, 
-  horizontally scrollable chart containers, sticky compact header.
+> All data in this deployment is sample data prepared for the hackathon
+> prototype. Numbers are invented for illustration and do not represent
+> official Government of India statistics. The policy simulator and trend
+> forecast are illustrative model outputs, not real predictions.
 
-PAGES & ROUTES
-1. / Dashboard:
-   - Year selector (2019 to 2026, default 2025).
-   - KPI cards (vertical list on mobile, 3x2 grid on desktop): records digitized (%), 
-     pending land disputes, average dispute resolution days, women-owned land (%), 
-     climate vulnerability index, research outputs count.
-   - Line chart: records digitized over time (2015-2025).
-   - Line chart: built-up land % over time.
-   - Bar chart: pending disputes by state (top 10 states).
-   - Bar chart: research outputs by topic.
-   - Progress bar list: project progress by component.
-   - "Download report (CSV)" button that exports the currently visible KPIs and chart 
-     data as a real CSV file.
-   - Empty reserved section labeled "National map, integration pending" as a bordered 
-     placeholder box. No map yet.
-2. /library: Research Repository. Search box, filters (type, topic, state, year as 
-   native select dropdowns), result list (single-column list layout, NOT cards in a 
-   grid), pagination, and an empty state ("No results match your filters") when 
-   applicable.
-3. /library/:id: detail page with title, type/topic/state/year badges, tag list, 
-   abstract/summary, and a "Recommended" list (same topic or state, excluding current 
-   item).
-4. /simulator: Policy Simulator. Select a state (dropdown), select a policy lever 
-   (land records digitization, dispute resolution fast-track, women's land title 
-   drive, climate-resilient zoning), set intensity via a native range slider (0 to 
-   100), and show projected effects as a simple table and one line chart (before vs 
-   after projection). Clearly label: "Projections use a simplified model on sample 
-   data."
-5. /submit: form to submit a research item (title, type, topic, state, year, summary, 
-   tags). Logged-in users only; redirect others to /login.
-6. /review: table of submitted items with Approve/Reject actions. Role "official" only.
-7. /login: email and password form with clear error messages.
-8. /about: three sections of plain prose: Vision, What Is Built, Roadmap.
+## What this is
 
-AUTH & ACCESS
-- Not logged in: can see /, /library, /library/:id, /about, /login only.
-- Roles "researcher" and "institution": additionally /simulator and /submit.
-- Role "official": everything, including /review.
-- Keep auth simple (mock login with hardcoded demo accounts; clearly documented in 
-  code comments).
+A national knowledge platform where researchers, institutions and government
+officials can browse land-governance research, see land indicators on an
+interactive map and dashboard, test policy ideas in a simulator before
+real-world rollout, and submit new evidence for official review.
 
-DATA
-- ALL data access goes through src/lib/api.ts. Components never touch storage directly.
-- All data is MOCK/demo data defined in src/lib/api.ts or a local data file: 
-  12 states, 40+ research items, 10 years of time series, realistic but invented 
-  numbers. Clearly label the source as sample data.
-- Login: accept any email with password "demo123", assign role based on email prefix 
-  (official@, researcher@, institution@), default researcher.
+## Pages
 
-STATES
-Every page must implement all three states, styled plainly:
-- Loading: a simple centered spinner (CSS only) with the text "Loading...". 
-  NO skeleton loaders or shimmer placeholders.
-- Empty: a bordered box with one line of explanation and, where useful, a link or 
-  button to clear filters / go back.
-- Error: a bordered box with the error message and a "Try again" button that 
-  re-fetches.
+| Route | What it does | Access |
+|---|---|---|
+| `/` | Dashboard: KPI cards, trend charts, disputes-by-state, research-by-topic, project progress, downloadable CSV report, interactive map with 3 switchable layers | Public |
+| `/library` | Research repository: full-text search, filters (type/topic/state/year), 25 sample items | Public |
+| `/library/:id` | Item detail with tag-based "Recommended" items | Public |
+| `/simulator` | Policy simulator: pick a state and a policy lever, set intensity, see a 5-year projection against baseline | Researcher, Institution, Official |
+| `/submit` | Submit new evidence for review | Researcher, Institution, Official |
+| `/review` | Approve/reject submitted evidence | Official only |
+| `/about` | Problem statement, what's built vs. planned | Public |
+| `/login` | Email/password sign-in, demo accounts documented on the page | Public |
 
-HEADER & FOOTER
-- Header: platform name "BhoomiSetu" (or suggest 2 alternatives), nav links, auth 
-  state (Login / user email + role + Logout), and a small bordered "Sample data" 
-  badge, always visible on every page.
-- Footer: one line with platform name, SIH26019, and the current year. Nothing else.
+## Tech stack
 
-TECH
-- Next.js (App Router) + TypeScript + Tailwind CSS.
-- Charts: Recharts or a lightweight custom SVG chart component. Keep charts 
-  flat, monochrome-plus-one-accent, with visible axis labels and gridlines.
-- Use native HTML form controls (select, input, button) styled minimally rather 
-  than heavy custom component libraries.
+This is what's actually in `package.json` — see note below on why this
+differs from an earlier draft of this README.
 
-This project was built with [Lovable](https://lovable.dev).
+- **Frontend:** React 19 + [TanStack Start](https://tanstack.com/start) +
+  TanStack Router, built with **Vite** and served via **Nitro**.
+- **Backend:** [Supabase](https://supabase.com) — Postgres database, Auth
+  (email/password), row-level security, auto-generated REST API.
+- **UI:** Tailwind CSS v4 + Radix UI primitives, Recharts for charts,
+  react-hook-form + zod for the submit form.
+- **Package manager:** Bun (`bun.lock`).
+- **Deployment:** freebuff.app.
 
-**Live app**: https://bhumi-vision-hub.lovable.app
+## Data model (Supabase / Postgres)
 
-## Build with Lovable
+- `regions` — 12 Indian states with coordinates for the map.
+- `land_metrics` — yearly indicators per state, 2019–2024 (digitization %,
+  pending disputes, resolution days, women-owned %, climate vulnerability,
+  built-up %).
+- `evidence` — research repository items with full-text search.
+- `projects` — scheme/project progress shown on the dashboard.
+- `forecasts` — 2025–2027 linear-trend projections per state/metric.
+- `policy_levers` — the simulator's assumed effect sizes per lever.
+- `profiles` — role per authenticated user (`researcher` / `institution` /
+  `official`).
+- `submissions` — user-submitted evidence, with a status the review queue
+  acts on.
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/43410dbd-4ee1-4df0-b776-2889fe7e554f).
+Access is enforced with Postgres row-level security policies, not just by
+hiding navigation links in the UI.
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+## What's built vs. planned
 
-## Development
+**Built:** repository with search/filters/recommendations, dashboard with a
+downloadable report, interactive map with 3 layers, statistical trend
+forecast, illustrative policy simulator, role-based access, submit → review
+workflow.
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+**Planned (not in this prototype):** AI semantic search and literature
+synthesis, satellite/remote-sensing map layers, collaborative workspaces, an
+innovation/hackathon portal, OCR + full-text document ingestion, public APIs
+for other government systems.
 
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+## Local development
+
+```bash
+git clone https://github.com/manshi-1028/bhumi-vision-hub.git
+cd bhumi-vision-hub
+bun install
+bun run dev
 ```
+
+You'll need a Supabase project and its URL/anon key as environment
+variables — see `supabase/migrations` for the schema to apply.
+
+## Note on this README
+
+An earlier version of this file described a Next.js app with mock-only data
+and no real backend — that was the *original build prompt*, not the shipped
+app. This version documents what is actually deployed: TanStack Start (not
+Next.js) on the frontend, and a real Supabase Postgres backend with RLS,
+auth, and a working write path (`/submit` → `/review`), not just mock data.
+Keep this file in sync with the code — the next person to read it (a judge,
+a teammate, or future you) will trust it over the demo unless they check.
