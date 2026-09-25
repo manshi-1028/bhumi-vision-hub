@@ -11,5 +11,25 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+    // Serve the SPA shell for every path: client-only rendering with the
+    // shell prerendered at build time (no server runtime needed to deploy).
+    spa: { enabled: true },
   },
+  // Static-hosting build (bun run build:static): skip Nitro entirely and emit
+  // the client bundle straight into dist/ (Freebuff static hosting copies
+  // dist/*). Default builds keep Nitro SSR output in .output/.
+  ...(process.env["FREEBUFF_STATIC_BUILD"]
+    ? {
+        nitro: false as const,
+        vite: {
+          build: {
+            outDir: "dist",
+            emptyOutDir: true,
+          },
+          environments: {
+            client: { build: { outDir: "dist" } },
+          },
+        },
+      }
+    : {}),
 });
