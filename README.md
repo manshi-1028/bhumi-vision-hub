@@ -1,698 +1,630 @@
 # BhoomiSetu
 
-### National Digital Platform for Research, Policy Innovation, and Evidence-Based Land Governance in India
+### Land Governance Intelligence Platform
 
-**SIH2026 — Problem Statement SIH26019**
+Prototype for **SIH26019 — National Digital Platform for Research, Policy Innovation, and Evidence-Based Land Governance in India.**
 
-BhoomiSetu is a demonstration platform designed to connect land-governance data, research evidence, statistical analysis, policy simulation, and evidence submission into a single digital workspace.
-
-The platform brings together a national dashboard, research repository, GIS-oriented regional insights, statistical trend forecasts, an assumption-based policy simulator, and a role-based research submission and review workflow.
-
-> **Prototype / Demonstration Environment:** The deployed application uses demonstration and sample data. It is not an official Government of India system.
+**Live Demo:** https://bhoomisetu.freebuff.app/
+**Repository:** https://github.com/manshi-1028/bhumi-vision-hub
 
 ---
 
-## 🔗 Links
+## Overview
 
-* **Live Demo:** https://bhoomisetu.freebuff.app/
-* **GitHub Repository:** https://github.com/manshi-1028/bhumi-vision-hub
-* **YouTube Demo:** `ADD_YOUR_YOUTUBE_LINK_HERE`
+BhoomiSetu is a digital platform for **research discovery, land-governance analytics, evidence management, and policy scenario exploration**.
 
----
+The platform brings regional land indicators, research evidence, statistical trend forecasts, geographic visualization, policy simulations, and evidence review into a unified workflow for researchers, institutions, and government officials.
 
-## 📌 Problem
+### Core capabilities
 
-Land governance involves large amounts of information distributed across different systems and institutions.
+* Research discovery and evidence management
+* Regional land-governance monitoring
+* Interactive regional/GIS visualization
+* Statistical trend forecasting
+* Policy scenario exploration
+* Evidence submission and official review
+* Downloadable analytical reports
+* Role-based authentication
 
-Research publications, land records, dispute information, development indicators, ownership data, and policy decisions often exist separately. This makes it difficult to connect evidence with the decisions that depend on it.
-
-BhoomiSetu explores a unified platform where:
-
-* Land-governance indicators can be viewed together.
-* Research and evidence can be searched through a structured repository.
-* Regional data can be explored through dashboards and maps.
-* Historical indicators can be used for statistical trend forecasting.
-* Policy assumptions can be tested through a simplified simulator.
-* Researchers and institutions can submit evidence.
-* Government-official roles can review submitted evidence.
+> **Prototype note:** Numerical datasets currently used by the application are sample data prepared for demonstration. They do not represent official Government of India statistics.
 
 ---
 
-# 🚀 Key Features
+# Problem Statement
 
-## 1. National Land Governance Dashboard
+Land-governance information can be distributed across research studies, administrative records, regional indicators, development projects, and policy interventions.
 
-The dashboard provides an overview of major land-governance indicators across reporting regions.
+When these sources remain fragmented, it becomes difficult to:
 
-It includes indicators such as:
+* Discover relevant research
+* Compare regional indicators
+* Identify historical trends
+* Explore policy scenarios
+* Connect evidence with decision-making
+* Move research through an institutional review workflow
 
-* Records digitized
-* Pending land disputes
-* Average dispute-resolution time
-* Women-owned land
-* Climate vulnerability
-* Built-up land percentage
-* Research and evidence activity
+BhoomiSetu demonstrates a unified digital workflow for these activities.
 
-The dashboard also supports reporting-year selection and downloadable CSV reports.
+---
 
-### Dashboard
+# Key Features
+
+## 1. National Land-Governance Dashboard
+
+The dashboard provides a consolidated view of regional land-governance indicators.
+
+### Includes
+
+* National-level KPIs
+* Historical trend charts
+* State-level dispute analysis
+* Research output indicators
+* Project progress indicators
+* Interactive regional map visualization
+* Reporting-year selection
+* CSV report download
 
 ![BhoomiSetu Dashboard](screenshots/dashboard.png)
 
 ---
 
-## 2. Research & Evidence Repository
+## 2. Interactive Regional/GIS Visualization
 
-The Research Library provides a searchable repository for research and evidence records.
+The dashboard provides map-based regional exploration of land-governance indicators.
 
-Users can filter records by:
+Users can explore regional differences through available map layers, including indicators related to:
 
-* Type
-* Topic
-* State
-* Year
+* Records digitisation
+* Pending disputes
+* Resolution time
+* Women's land ownership
+* Climate vulnerability
+* Built-up land
 
-The repository is designed to connect research outputs with regional land-governance issues.
+The map is integrated directly into the dashboard alongside the analytical indicators.
 
-### Research Library
+> **Current scope:** The visualization is a prototype using sample regional data. Advanced spatial analysis, satellite/remote-sensing layers, and broader geographic datasets are planned for future development.
+
+---
+
+## 3. Research & Evidence Repository
+
+The research library provides a searchable repository for land-governance research and evidence records.
+
+### Features
+
+* Text search
+* Research-type filtering
+* Topic filtering
+* State filtering
+* Year filtering
+* Research detail pages
+* Related/recommended research
 
 ![Research Library](screenshots/research-library.png)
 
 ---
 
-## 3. Regional / GIS Insights
-
-The dashboard provides regional land-governance visualization and map-based exploration.
-
-Regional data can be examined using indicators related to:
-
-* Land digitisation
-* Disputes
-* Resolution time
-* Ownership equity
-* Climate exposure
-* Built-up land
-
-The goal is to make geographically distributed land-governance information easier to compare and interpret.
-
----
-
 ## 4. Statistical Trend Forecast
 
-BhoomiSetu includes a statistical forecasting component implemented in Python.
+BhoomiSetu includes a transparent **statistical trend forecast** based on historical indicator data.
 
-The forecasting script is located at:
+The analytics pipeline uses:
+
+* Python
+* Pandas
+* NumPy
+* Linear trend fitting
+
+The implementation is available at:
 
 ```text
 analytics/forecast.py
 ```
 
-The implementation uses:
-
-* Python
-* Pandas
-* NumPy
-* Linear trend estimation
-
-The model fits a simple linear trend to historical sample data and generates estimated values for future years.
-
-### Important
-
-This is a **statistical trend forecast**, not an AI prediction system.
-
-The current demonstration forecasts selected indicators for future years using a linear trend.
-
-Example metrics include:
+For each region and selected metric, historical observations are fitted using a simple linear model:
 
 ```text
-records_digitized_pct
-pending_disputes
-avg_resolution_days
-women_owned_pct
-climate_vuln_index
-built_up_pct
+Historical observations
+        ↓
+Linear fitting
+        ↓
+Trend equation
+        ↓
+Future-year estimates
 ```
 
-The generated forecast output is written to:
+The implementation uses `numpy.polyfit(..., 1)` to estimate the linear relationship between year and metric value.
 
-```text
-forecasts.csv
-```
+Percentage and index-based indicators are constrained to a `0–100` range, while non-negative indicators are prevented from producing negative values.
 
-This approach is intentionally transparent and easy to inspect for the prototype.
+### Important limitation
+
+This is a **statistical trend model, not an AI prediction system**.
+
+The forecasts are illustrative projections generated from sample data and should not be interpreted as official Government of India forecasts.
 
 ---
 
 ## 5. Policy Simulator
 
-The Policy Simulator allows users to explore the assumed effects of different policy interventions.
+The policy simulator allows users to explore simplified policy scenarios.
 
-Users can select:
+Users can:
 
-* Region
-* Policy lever
-* Intensity
-
-The simulator then displays:
-
-* Baseline values
-* Projected values
-* Absolute changes
-* Percentage changes
-* Five-year comparison charts
-
-### Policy Simulator
+1. Select a region
+2. Select a policy lever
+3. Adjust intervention intensity
+4. Run the simulation
+5. Compare baseline and projected values
+6. View modeled changes through tables and charts
 
 ![Policy Simulator](screenshots/policy-simulator.png)
 
-### Important limitation
+The simulator uses predefined policy levers with assumed effect sizes, including examples such as:
 
-The simulator is **not a real policy prediction engine**.
+* Land-record digitization
+* Dispute-resolution acceleration
+* Women's land-title initiatives
+* Climate-resilient zoning
 
-Its projections are based on simplified, explicitly defined assumptions for demonstration purposes. The results should therefore be interpreted as scenario exploration rather than real-world policy forecasts.
+> **Important:** Simulator outputs are simplified modeled scenarios based on assumptions and sample data. They are not real-world policy impact estimates or policy recommendations.
 
 ---
 
-## 6. Research Submission Workflow
+## 6. Evidence Submission Workflow
 
-Researchers and institutions can submit research or evidence records through the platform.
+Researchers and institutions can submit research evidence through the platform.
 
-Submission fields include:
+The workflow is:
+
+```text
+Researcher / Institution
+          ↓
+    Submit Evidence
+          ↓
+     Review Queue
+          ↓
+    Official Review
+       ↙       ↘
+   Approve     Reject
+```
+
+The submission interface captures relevant research information including:
 
 * Title
-* Type
+* Research type
 * Topic
 * State
 * Summary
 
-Submitted records enter a review workflow before publication.
-
-### Submission
-
-![Research Submission](screenshots/submission.png)
+![Evidence Submission](screenshots/submission.png)
 
 ---
 
-## 7. Role-Based Review System
+## 7. Official Review Workspace
 
-BhoomiSetu uses role-based access for different types of users.
-
-### Researcher
-
-Researchers can:
-
-* Explore the research repository
-* Submit research/evidence
-* Access the platform's analytical features available to their role
-
-### Institution
-
-Institutions can:
-
-* Explore research and evidence
-* Submit evidence
-* Participate in the research workflow
-
-### Government Official
+Government-official accounts can access the review workspace.
 
 Officials can:
 
-* Access the review workspace
-* Review submitted records
+* View pending submissions
+* Inspect research information
 * Approve submissions
 * Reject submissions
 
-Approved records can then appear in the public research repository.
-
-### Review Workspace
+This provides a basic evidence-review workflow between researchers, institutions, and authorized officials.
 
 ![Review Workspace](screenshots/review.png)
 
 ---
 
-# 🔐 Authentication
+## 8. Authentication & Role-Based Access
 
-BhoomiSetu includes a dedicated login system using **Supabase Authentication**.
+BhoomiSetu uses **Supabase Authentication** for user identity and role information stored in the `profiles` table.
 
-The login page provides account-based access to protected platform functionality.
+The current roles are:
 
-![BhoomiSetu Login](screenshots/login.png)
+| Role        | Access                                                         |
+| ----------- | -------------------------------------------------------------- |
+| Public User | Dashboard, research repository, research details, About, Login |
+| Researcher  | Public features + simulator + evidence submission              |
+| Institution | Public features + simulator + evidence submission              |
+| Official    | Full platform access + evidence review                         |
 
-The deployed application is configured as a demonstration environment with provisioned accounts for the supported roles.
+Protected routes include:
 
-**No passwords or credentials are stored in this repository or README.**
+```text
+/simulator
+/submit
+/review
+```
+
+The review workspace is restricted to users with the appropriate official role.
+
+![Login](screenshots/login.png)
+
+### Demo credentials
+
+Authentication credentials are **not committed to the repository**.
+
+For evaluation of protected workflows, demo credentials should be shared separately by the project team rather than exposed in source control.
 
 ---
 
-# 🏗️ Technology Stack
+# Technology Stack
 
 ## Frontend
 
 * React 19
-* TypeScript
 * TanStack Start
 * TanStack Router
+* TypeScript
 * Vite
-* Tailwind CSS
-* Lucide Icons
-* Recharts / charting components
+* Tailwind CSS v4
+* Recharts
+* Radix UI
+* React Hook Form
+* Zod
 
-## Backend / Data
+## Backend & Database
 
 * Supabase
 * PostgreSQL
 * Supabase Authentication
-* Row Level Security (RLS)
-* Supabase RPC functions
+* PostgreSQL Row Level Security (RLS)
 
 ## Analytics
 
 * Python
 * Pandas
 * NumPy
-* Linear trend analysis
+* Linear statistical trend modeling
 
 ## Development
 
+* Bun
 * Git
 * GitHub
-* Bun
-* PowerShell / Windows development environment
 
 ---
 
-# 🧩 Architecture
+# Architecture
 
 ```text
-                        ┌──────────────────────┐
-                        │      BhoomiSetu      │
-                        │    React Frontend    │
-                        └──────────┬───────────┘
-                                   │
-              ┌────────────────────┼────────────────────┐
-              │                    │                    │
-              ▼                    ▼                    ▼
-       ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
-       │   Dashboard │      │   Research  │      │  Simulator  │
-       │   & GIS     │      │  Repository │      │             │
-       └─────────────┘      └─────────────┘      └─────────────┘
-              │                    │                    │
-              └────────────────────┼────────────────────┘
-                                   ▼
-                         ┌──────────────────┐
-                         │     Supabase     │
-                         │ Auth + PostgreSQL│
-                         │      + RLS       │
-                         └──────────────────┘
-
-                         ┌──────────────────┐
-                         │ Python Analytics │
-                         │   Pandas/NumPy   │
-                         └────────┬─────────┘
-                                  ▼
-                           Statistical
-                         Trend Forecasts
+                         BhoomiSetu
+                              |
+                    React + TanStack Start
+                              |
+          +-------------------+-------------------+
+          |                   |                   |
+          ↓                   ↓                   ↓
+     Dashboard          Research Hub       Policy Simulator
+          |                   |                   |
+          +-------------------+-------------------+
+                              |
+                              ↓
+                          Supabase
+                              |
+                    +---------+---------+
+                    |                   |
+                    ↓                   ↓
+               PostgreSQL         Supabase Auth
+                    |
+        +-----------+-----------+
+        |           |           |
+        ↓           ↓           ↓
+     Regions     Evidence   Land Metrics
+        |           |           |
+        +-----------+-----------+
+                    |
+          +---------+---------+
+          |                   |
+          ↓                   ↓
+      Forecasts          Submissions
+                              |
+                              ↓
+                       Policy Levers
 ```
 
 ---
 
-# 🗃️ Data Architecture
+# Data Model
 
-The application uses Supabase/PostgreSQL for structured platform data.
+The application uses the following primary Supabase/PostgreSQL tables:
 
-Core data areas include:
+| Table           | Purpose                                  |
+| --------------- | ---------------------------------------- |
+| `regions`       | Regional information and map coordinates |
+| `land_metrics`  | Historical land-governance indicators    |
+| `evidence`      | Research repository records              |
+| `projects`      | Project and scheme progress              |
+| `forecasts`     | Statistical trend forecast outputs       |
+| `policy_levers` | Assumed effects used by the simulator    |
+| `profiles`      | Authenticated user roles                 |
+| `submissions`   | Evidence submitted for review            |
+
+Database access is protected using PostgreSQL Row Level Security.
+
+---
+
+# Security & Access Control
+
+BhoomiSetu uses:
+
+* Supabase Authentication for user identity
+* Role information stored in `profiles`
+* PostgreSQL Row Level Security
+* Protected application routes
+* Environment variables for Supabase configuration
+
+Sensitive credentials and Supabase secrets are not included in the repository.
+
+---
+
+# Application Routes
+
+| Route          | Description                                 | Access        |
+| -------------- | ------------------------------------------- | ------------- |
+| `/`            | Dashboard, KPIs, charts, map and CSV report | Public        |
+| `/library`     | Research repository and search              | Public        |
+| `/library/:id` | Research detail and recommendations         | Public        |
+| `/simulator`   | Policy scenario simulator                   | Authenticated |
+| `/submit`      | Evidence submission                         | Authenticated |
+| `/review`      | Evidence review workflow                    | Official      |
+| `/about`       | Platform overview and roadmap               | Public        |
+| `/login`       | Authentication                              | Public        |
+
+---
+
+# Recommended Demo Flow
 
 ```text
-regions
-land_metrics
-evidence
-projects
-forecasts
-policy_levers
-profiles
-submissions
+1. Open Dashboard
+        ↓
+2. Explore regional indicators and map layers
+        ↓
+3. Open Research Repository
+        ↓
+4. Search and inspect evidence
+        ↓
+5. View statistical trend forecast
+        ↓
+6. Run a policy scenario
+        ↓
+7. Login as Researcher / Institution
+        ↓
+8. Submit evidence
+        ↓
+9. Login as Official
+        ↓
+10. Review the submission
+        ↓
+11. Approve / Reject
+        ↓
+12. Download dashboard CSV report
 ```
 
-Authentication and role information are integrated with the application access model.
+---
 
-Row Level Security is used to control access to protected data and workflows.
+# Screenshots
+
+### Dashboard
+
+![Dashboard](screenshots/dashboard.png)
+
+### Research Library
+
+![Research Library](screenshots/research-library.png)
+
+### Policy Simulator
+
+![Policy Simulator](screenshots/policy-simulator.png)
+
+### Evidence Submission
+
+![Evidence Submission](screenshots/submission.png)
+
+### Official Review
+
+![Review Workspace](screenshots/review.png)
+
+### Login
+
+![Login](screenshots/login.png)
 
 ---
 
-# 📊 Forecasting Methodology
-
-The forecasting script follows a simple linear trend approach.
-
-For each region and metric:
-
-1. Historical observations are grouped by region.
-2. Observations are sorted by year.
-3. A linear relationship is fitted using NumPy.
-4. Future values are calculated from the fitted trend.
-5. Percentage/index metrics are constrained to the `0–100` range.
-6. Count/time metrics are prevented from becoming negative.
-7. Results are exported as CSV.
-
-Conceptually:
-
-```text
-Historical data
-      │
-      ▼
-Group by region
-      │
-      ▼
-Sort by year
-      │
-      ▼
-Linear trend fitting
-      │
-      ▼
-Future-year estimates
-      │
-      ▼
-forecasts.csv
-```
-
-This deliberately keeps the methodology transparent rather than presenting a simple statistical model as artificial intelligence.
-
----
-
-# 🧪 Demonstration Data
-
-The deployed prototype uses demonstration/sample data.
-
-Some research records, land indicators, policy effects, and regional values are illustrative and are intended to demonstrate the platform's functionality.
-
-Therefore:
-
-* Dashboard values should not be interpreted as official government statistics.
-* Research records may be fictional or illustrative.
-* Forecasts are generated from sample data.
-* Simulator outputs are assumption-based scenarios.
-* The application should not be used as a basis for real-world policy decisions.
-
----
-
-# 🔒 Security & Configuration
-
-Environment variables are used for Supabase configuration.
-
-Create a local `.env` file:
-
-```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-Do **not** commit your `.env` file or private credentials to GitHub.
-
-The Supabase anonymous/publishable client key is intended for frontend use when Row Level Security and appropriate database policies are configured. Never expose a Supabase service-role key in frontend code.
-
----
-
-# 🛠️ Local Development
+# Local Development
 
 ## Prerequisites
 
-Install:
+You will need:
 
-* Node.js / Bun
-* Git
-* Python 3.x for the analytics script
-* A Supabase project for database-backed local development
+* Bun
+* A Supabase project
+* Supabase project URL
+* Supabase anonymous key
 
-Clone the repository:
+## Clone the repository
 
 ```bash
 git clone https://github.com/manshi-1028/bhumi-vision-hub.git
+
 cd bhumi-vision-hub
 ```
 
-Install dependencies:
+## Install dependencies
 
 ```bash
 bun install
 ```
 
-Create your environment file:
+## Configure environment variables
 
-```text
-.env
-```
-
-Add:
+Create a `.env` file in the project root:
 
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-Start the development server:
+Use your own Supabase project URL and anonymous key when running the project locally.
+
+**Do not commit private credentials or secrets to GitHub.**
+
+## Start development server
 
 ```bash
 bun run dev
 ```
 
----
-
-# 🐍 Running the Forecast Script
-
-The forecasting script is located at:
-
-```text
-analytics/forecast.py
-```
-
-Install the required Python packages if necessary:
+## Build
 
 ```bash
-pip install pandas numpy
+bun run build
 ```
 
-Then run:
+## Static deployment build
 
 ```bash
-python analytics/forecast.py
+bun run build:static
 ```
 
-The script reads:
+---
+
+# Deployment
+
+The current prototype is deployed using **Freebuff**.
+
+**Live deployment:**
+
+https://bhoomisetu.freebuff.app/
+
+Static deployment configuration is handled through:
 
 ```text
-land_metrics.csv
+vite.config.ts
+scripts/make-static-dist.mjs
 ```
 
-and generates:
-
-```text
-forecasts.csv
-```
+The deployment build generates the static client output required by the hosting environment.
 
 ---
 
-# 📁 Project Structure
+# Current Scope
 
-```text
-bhumi-vision-hub/
-│
-├── analytics/
-│   └── forecast.py
-│
-├── public/
-│   ├── favicon.ico
-│   └── favicon.svg
-│
-├── scripts/
-│   └── make-static-dist.mjs
-│
-├── src/
-│   ├── components/
-│   │   ├── charts.tsx
-│   │   ├── states.tsx
-│   │   └── ui/
-│   │
-│   ├── lib/
-│   │   ├── api.ts
-│   │   ├── simulate.ts
-│   │   ├── supabase.ts
-│   │   └── ...
-│   │
-│   ├── routes/
-│   │   ├── __root.tsx
-│   │   ├── index.tsx
-│   │   ├── library.index.tsx
-│   │   ├── library.$id.tsx
-│   │   ├── simulator.tsx
-│   │   ├── submit.tsx
-│   │   ├── review.tsx
-│   │   ├── login.tsx
-│   │   └── about.tsx
-│   │
-│   └── styles.css
-│
-├── screenshots/
-│   ├── dashboard.png
-│   ├── login.png
-│   ├── policy-simulator.png
-│   ├── research-library.png
-│   ├── review.png
-│   └── submission.png
-│
-├── package.json
-├── vite.config.ts
-└── README.md
-```
+## Implemented
+
+* Research repository
+* Search and filtering
+* Research recommendations
+* Land-governance dashboard
+* Interactive regional/GIS visualization
+* CSV report generation
+* Statistical trend forecasting
+* Policy simulator
+* Authentication
+* Role-based access
+* Evidence submission
+* Official review workflow
+* Supabase/PostgreSQL backend
+* Row Level Security
+* Responsive interface
+* Deployed prototype
+
+## Planned
+
+* AI semantic search
+* Literature synthesis
+* Satellite and remote-sensing layers
+* Collaborative research workspaces
+* Innovation and hackathon portal
+* OCR and full-text document ingestion
+* Public APIs for integration with external government systems
+* Expanded geographic and administrative datasets
 
 ---
 
-# 🧭 Application Routes
+# Limitations
 
-| Route          | Purpose                          |
-| -------------- | -------------------------------- |
-| `/`            | National dashboard               |
-| `/library`     | Research and evidence repository |
-| `/library/:id` | Evidence/research detail         |
-| `/simulator`   | Policy simulation                |
-| `/submit`      | Evidence submission              |
-| `/review`      | Official review workspace        |
-| `/login`       | Authentication                   |
-| `/about`       | Platform information             |
+BhoomiSetu is a **hackathon prototype**, not a production government information system.
 
-Protected routes require appropriate authentication and role access.
+Current limitations include:
 
----
+* Sample rather than official datasets
+* Simplified statistical forecasting methodology
+* Assumption-based policy simulation
+* Limited regional coverage in the prototype dataset
+* No live integration with government information systems
+* No production-scale document ingestion pipeline
+* Prototype-level GIS visualization
 
-# 🎥 Demo
-
-A complete walkthrough of BhoomiSetu is available here:
-
-**YouTube:** `ADD_YOUR_YOUTUBE_LINK_HERE`
-
-The demonstration covers:
-
-1. Dashboard and national indicators
-2. Research repository
-3. Search and filtering
-4. Statistical forecast
-5. Policy simulator
-6. Research submission
-7. Official review workflow
-8. Role-based authentication
+These limitations define the boundary between the current prototype and future development.
 
 ---
 
-# 🎯 Demo Flow
+# Roadmap
 
-A recommended demonstration sequence is:
+### Phase 1 — Prototype
 
-```text
-Login
-  ↓
-Dashboard
-  ↓
-Explore regional indicators
-  ↓
-Research Library
-  ↓
-Search / filter evidence
-  ↓
-Statistical Forecast
-  ↓
-Policy Simulator
-  ↓
-Submit Evidence
-  ↓
-Official Review
-  ↓
-Approve / Reject
-```
+* Research repository
+* Land-governance dashboard
+* Regional/GIS visualization
+* Statistical trend forecasting
+* Policy simulation
+* Evidence submission and review
 
-This demonstrates the complete evidence-to-decision workflow represented by the prototype.
+### Phase 2 — Evidence Intelligence
 
----
+* Semantic research discovery
+* Document ingestion
+* OCR
+* Literature synthesis
+* Improved evidence linking
 
-# ⚠️ Scope & Limitations
+### Phase 3 — Data Integration
 
-BhoomiSetu is currently a prototype / demonstration implementation.
+* Government data integrations
+* Expanded regional datasets
+* Remote-sensing layers
+* Public APIs
 
-### Current limitations
+### Phase 4 — Collaborative Governance
 
-* Uses sample/demonstration data.
-* Statistical forecasts use simple linear trends.
-* Policy simulation uses predefined assumptions.
-* The simulator does not model the full complexity of real policy outcomes.
-* Research records are illustrative where indicated.
-* GIS and regional visualisations are demonstration-oriented.
-* Production-scale data ingestion and government-system integrations are outside the current prototype scope.
-
-These limitations are intentionally disclosed so that demonstration functionality is not presented as production-grade policy intelligence.
+* Institutional workspaces
+* Cross-organization collaboration
+* Evidence lifecycle management
+* Advanced policy analysis
 
 ---
 
-# 🔮 Future Scope
+# Problem Statement
 
-Potential future development includes:
+**SIH26019**
 
-* Integration with verified government datasets.
-* Automated data ingestion pipelines.
-* More sophisticated statistical forecasting methods.
-* Spatial analysis and richer GIS layers.
-* Evidence provenance and citation tracking.
-* Advanced research discovery and semantic search.
-* Multilingual accessibility.
-* Government-system integrations.
-* More comprehensive policy impact modelling.
-* Production-grade monitoring, auditing and security.
-* Scalable deployment for large datasets and concurrent users.
+**National Digital Platform for Research, Policy Innovation, and Evidence-Based Land Governance in India**
 
----
-
-# 🏁 Project Status
-
-**Current status: Prototype / Demonstration**
-
-Implemented:
-
-* ✅ National dashboard
-* ✅ Regional land-governance indicators
-* ✅ Research & evidence repository
-* ✅ Search and filtering
-* ✅ GIS-oriented regional exploration
-* ✅ CSV reporting
-* ✅ Statistical trend forecasting
-* ✅ Policy simulator
-* ✅ Evidence submission workflow
-* ✅ Official review workflow
-* ✅ Role-based access
-* ✅ Supabase authentication
-* ✅ Responsive UI
-* ✅ Static deployment configuration
-
----
-
-# 📜 Disclaimer
-
-BhoomiSetu is an academic/prototype implementation created for **Smart India Hackathon 2026 — SIH26019**.
-
-The application and its datasets are intended to demonstrate a possible digital approach to research, evidence, analytics, and land-governance workflows.
-
-The demonstration data, forecasts, and policy-simulation outputs should **not** be interpreted as official government statistics, official policy recommendations, or real-world predictions.
-
----
-
-## 👩‍💻 Built For
-
-**Smart India Hackathon 2026**
-
-**Problem Statement:** SIH26019
-**Project:** BhoomiSetu
 **Domain:** Land Governance, Research & Policy Innovation
 
+**Platform:** BhoomiSetu
+
+**Status:** Hackathon Prototype
+
 ---
 
-## ⭐ Repository
+# License
 
-If you find the project useful or interesting, consider starring the repository:
+This repository is currently maintained as a hackathon project.
 
+No open-source license is currently declared for the repository. If the project is later released for broader reuse, an explicit open-source license can be added.
+
+---
+
+# Project Links
+
+**Live Demo:**
+https://bhoomisetu.freebuff.app/
+
+**GitHub Repository:**
 https://github.com/manshi-1028/bhumi-vision-hub
